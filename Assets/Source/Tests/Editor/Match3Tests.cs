@@ -123,6 +123,7 @@ public class Match3Tests
 
                 var matches = board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
+                CollectionAssert.Contains(matches[0], matchPiece);
             }
 
             [Test]
@@ -144,6 +145,7 @@ public class Match3Tests
 
                 var matches = board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
+                CollectionAssert.Contains(matches[0], matchPiece);
             }
 
             [Test]
@@ -165,6 +167,7 @@ public class Match3Tests
 
                 var matches = board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
+                CollectionAssert.Contains(matches[0], matchPiece);
             }
 
             [Test]
@@ -229,6 +232,7 @@ public class Match3Tests
 
                 var matches = board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
+                CollectionAssert.Contains(matches[0], matchPiece);
             }
 
             [Test]
@@ -250,6 +254,7 @@ public class Match3Tests
 
                 var matches = board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
+                CollectionAssert.Contains(matches[0], matchPiece);
             }
 
             [Test]
@@ -271,6 +276,7 @@ public class Match3Tests
 
                 var matches = board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
+                CollectionAssert.Contains(matches[0], matchPiece);
             }
 
             [Test]
