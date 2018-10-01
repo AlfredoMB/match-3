@@ -16,7 +16,7 @@ public class Match3Tests
         public void SetUp()
         {
             _board = new Board(_width, _height, _minMatchSize);
-            _board.Fill(new BoardPiece(int.MinValue));
+            _board.Fill(new BoardPiece(int.MinValue)); // TODO> uncouple this invalid value from int
         }
     }
 
@@ -462,7 +462,7 @@ public class Match3Tests
             [Test]
             public void DetectPossibleMatches()
             {
-                int targetX = 2;
+                int targetX = 0;
 
                 BoardPiece matchPiece = new BoardPiece(0);
                 _board.SetPieceAt(matchPiece, targetX, 0);
@@ -473,21 +473,49 @@ public class Match3Tests
             }
 
             [Test]
-            public void ListPossibleMatches()
+            public void FailToDetectPossibleMatches()
             {
-                int targetX = 2;
+                int targetX = 0;
 
                 BoardPiece matchPiece = new BoardPiece(0);
                 _board.SetPieceAt(matchPiece, targetX, 0);
                 _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 1, 1);
+                _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 3, 0);
+
+                Assert.IsFalse(_board.AreThereAnyPossibleMatchesLeft());
+            }
+
+            [Test]
+            public void ListPossibleMatches()
+            {
+                int targetX = 0;
+
+                BoardPiece matchPiece = new BoardPiece(0);
+                _board.SetPieceAt(matchPiece, targetX, 0);
                 _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 2, 0);
+                _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 3, 0);
 
                 UnityEngine.Debug.Log(_board);
 
-                var possibleMatches = _board.GetAllPossibleMatchesLeft();    //make unique
+                var possibleMatches = _board.GetAllPossibleMatchesLeft();    // TODO: make unique
                 CollectionAssert.IsNotEmpty(possibleMatches);
                 Assert.AreEqual(1, possibleMatches.Count);
                 Assert.IsTrue(possibleMatches.TrueForAll(match => match.Match.TrueForAll(piece => piece.Type == matchPiece.Type)));
+            }
+
+            [Test]
+            public void FailToListPossibleMatches()
+            {
+                int targetX = 0;
+
+                BoardPiece matchPiece = new BoardPiece(0);
+                _board.SetPieceAt(matchPiece, targetX, 0);
+                _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 2, 0);
+                _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 4, 0);
+
+                UnityEngine.Debug.Log(_board);
+                
+                CollectionAssert.IsEmpty(_board.GetAllPossibleMatchesLeft());
             }
         }
     }
@@ -552,11 +580,11 @@ public class Board
 
     public void Fill(params BoardPiece[] pieces)
     {
-        for (int i = 0; i < _board.GetLength(0); i++)
+        for (int x = 0; x < _board.GetLength(0); x++)
         {
-            for (int j = 0; j < _board.GetLength(1); j++)
+            for (int y = 0; y < _board.GetLength(1); y++)
             {
-                _board[i, j] = new BoardPiece(pieces.Length > 0 ? pieces[0] : null);
+                SetPieceAt(new BoardPiece(pieces.Length > 0 ? pieces[0].Type : int.MinValue), x, y);
             }
         }
     }
@@ -815,7 +843,9 @@ public class Board
         {
             for (int x = 0; x < _board.GetLength(0); x++)
             {
-                // swap in 4 directions (if possible) and check each one
+                // swap in left and down (if possible) and check each one
+                // swapping up and right would generate same match tests, so we avoid it.
+
                 // left
                 if (x > 0)
                 {
@@ -828,18 +858,6 @@ public class Board
                     _movedList.Clear();
                 }
 
-                // right
-                if (x < _board.GetLength(0) - 1)
-                {
-                    Swap(_board[x, y], _board[x + 1, y]);
-                    if (GetMatchesFromMovedPieces().Count > 0)
-                    {
-                        return true;
-                    }
-                    Swap(_board[x, y], _board[x + 1, y]);
-                    _movedList.Clear();
-                }
-
                 // down
                 if (y > 0)
                 {
@@ -849,18 +867,6 @@ public class Board
                         return true;
                     }
                     Swap(_board[x, y], _board[x, y - 1]);
-                    _movedList.Clear();
-                }
-
-                // up
-                if (y < _board.GetLength(1) - 1)
-                {
-                    Swap(_board[x, y], _board[x, y + 1]);
-                    if (GetMatchesFromMovedPieces().Count > 0)
-                    {
-                        return true;
-                    }
-                    Swap(_board[x, y], _board[x, y + 1]);
                     _movedList.Clear();
                 }
             }
@@ -877,9 +883,9 @@ public class Board
         {
             for (int x = 0; x < _board.GetLength(0); x++)
             {
-                // TODO: remove right and up tests?
+                // swap in left and down (if possible) and check each one
+                // swapping up and right would generate same match tests, so we avoid it.
 
-                // swap in 4 directions (if possible) and check each one
                 // left
                 if (x > 0)
                 {
@@ -893,19 +899,6 @@ public class Board
                     _movedList.Clear();
                 }
 
-                // right
-                if (x < _board.GetLength(0) - 1)
-                {
-                    Swap(_board[x, y], _board[x + 1, y]);
-                    var matches = GetMatchesFromMovedPieces();
-                    foreach (var match in matches)
-                    {
-                        _possibleMatches.Add(new PossibleMatch(match, _board[x, y], _board[x + 1, y]));
-                    }
-                    Swap(_board[x, y], _board[x + 1, y]);
-                    _movedList.Clear();
-                }
-
                 // down
                 if (y > 0)
                 {
@@ -916,19 +909,6 @@ public class Board
                         _possibleMatches.Add(new PossibleMatch(match, _board[x, y], _board[x, y - 1]));
                     }
                     Swap(_board[x, y], _board[x, y - 1]);
-                    _movedList.Clear();
-                }
-
-                // up
-                if (y < _board.GetLength(1) - 1)
-                {
-                    Swap(_board[x, y], _board[x, y + 1]);
-                    var matches = GetMatchesFromMovedPieces();
-                    foreach (var match in matches)
-                    {
-                        _possibleMatches.Add(new PossibleMatch(match, _board[x, y], _board[x, y + 1]));
-                    }
-                    Swap(_board[x, y], _board[x, y + 1]);
                     _movedList.Clear();
                 }
             }
