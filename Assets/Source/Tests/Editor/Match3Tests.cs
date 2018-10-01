@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using NUnit.Framework;
 
 public class Match3Tests
@@ -25,6 +26,17 @@ public class Match3Tests
         public void FillBoard()
         {
             Assert.NotNull(_board.GetPieceAt(0, 0));
+        }
+
+        [Test]
+        public void RandomFillUpBoardWithoutMatches()
+        {
+            // trying to force random test failures
+            for (int i = 0; i < 100; i++)
+            {
+                _board.RandomFillUp(i, 0, 1, 2);
+                CollectionAssert.IsEmpty(_board.GetMatchesFromMovedPieces());
+            }
         }
     }
 
@@ -444,7 +456,7 @@ public class Match : List<BoardPiece> { }
 
 public class BoardPiece
 {
-    private readonly int _type;
+    public readonly int Type;
 
     public int X { get; private set; }
     public int Y { get; private set; }
@@ -452,12 +464,12 @@ public class BoardPiece
 
     public BoardPiece(int type)
     {
-        _type = type;
+        Type = type;
     }
 
     public BoardPiece(BoardPiece boardPiece)
     {
-        _type = boardPiece._type;
+        Type = boardPiece.Type;
     }
 
     public void SetBoardPosition(int x, int y)
@@ -473,7 +485,7 @@ public class BoardPiece
 
     public bool Matches(BoardPiece targetPieceType)
     {
-        return targetPieceType._type == _type;
+        return targetPieceType.Type == Type;
     }
 }
 
@@ -667,5 +679,86 @@ public class Board
         {
             RemovePieceAt(piece.X, piece.Y);
         }
+    }
+
+    /// <summary>
+    /// Fills the board with random pieces with types from types.
+    /// </summary>
+    /// <param name="types">Types of pieces. Requires at least 3 types to avoid the L case.</param>
+    public void RandomFillUp(int seed, params int[] types)
+    {
+        Assert.GreaterOrEqual(types.Length, 3, "The automatic board start up requires at least 3 types of pieces to avoid the L case.");
+        CollectionAssert.AllItemsAreUnique(types, "All types should be unique.");
+
+        var random = new Random(seed);
+        var typesList = new List<int>(types);
+        var tempList = new List<int>(types);
+
+        int preMatchSize = _minMatchSize - 1;
+
+        for (int y = 0; y < _board.GetLength(1); y++)
+        {
+            for (int x = 0; x < _board.GetLength(0); x++)
+            {
+                tempList.Clear();
+                tempList.AddRange(typesList);
+
+                // check left
+                if (x >= preMatchSize)
+                {
+                    int deltaX = x - 1;
+                    for (; deltaX > 0; deltaX--)
+                    {
+                        if (!_board[deltaX, y].Matches(_board[deltaX - 1, y]))
+                        {
+                            break;
+                        }
+                    }
+
+                    if (x - deltaX >= preMatchSize)
+                    {
+                        tempList.Remove(_board[x - 1, y].Type);
+                    }
+                }
+
+                // check downwards
+                if (y >= preMatchSize)
+                {
+                    int deltaY = y - 1;
+                    for (; deltaY > 0; deltaY--)
+                    {
+                        if (!_board[x, deltaY].Matches(_board[x, deltaY - 1]))
+                        {
+                            break;
+                        }
+                    }
+
+                    if (y - deltaY >= preMatchSize)
+                    {
+                        tempList.Remove(_board[x, y - 1].Type);
+                    }
+                }
+
+                int randomValue = random.Next(tempList.Count);
+                var randomPiece = tempList[randomValue];
+                _board[x, y] = new BoardPiece(randomPiece);
+                SetMovedPieceAt(x, y);
+            }
+        }
+    }
+
+    public override string ToString()
+    {
+        StringBuilder sb = new StringBuilder();
+
+        for (int y = _board.GetLength(1) - 1; y >= 0; y--)
+        {
+            for (int x = 0; x < _board.GetLength(0); x++)
+            {
+                sb.Append(_board[x, y].Type);
+            }
+            sb.AppendLine();
+        }
+        return sb.ToString();
     }
 }
