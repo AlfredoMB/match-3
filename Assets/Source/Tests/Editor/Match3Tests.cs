@@ -16,7 +16,7 @@ public class Match3Tests
         public void SetUp()
         {
             _board = new Board(_width, _height, _minMatchSize);
-            _board.Fill(new BoardPiece(int.MinValue)); // TODO> uncouple this invalid value from int
+            _board.Fill(new BoardPiece(int.MinValue)); // TODO: uncouple this invalid value from int
         }
     }
 
@@ -40,10 +40,17 @@ public class Match3Tests
         }
 
         [Test]
-        public void BoardReshuffle()
+        public void ShuffleBoard()
         {
-            _board.RandomFillUp(0, 0, 1, 2);
-            _board.RandomFillUpCurrentPieces(1);
+            // trying to force random test failures
+            for (int i = 0; i < 100; i++)
+            {
+                _board.RandomFillUp(i, 0, 1, 2);
+                var serializedBoard = _board.ToString();
+
+                _board.ShufflePieces(i + 1);
+                StringAssert.AreNotEqualIgnoringCase(serializedBoard, _board.ToString());
+            }
         }
     }
 
@@ -495,8 +502,6 @@ public class Match3Tests
                 _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 2, 0);
                 _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 3, 0);
 
-                UnityEngine.Debug.Log(_board);
-
                 var possibleMatches = _board.GetAllPossibleMatchesLeft();    // TODO: make unique
                 CollectionAssert.IsNotEmpty(possibleMatches);
                 Assert.AreEqual(1, possibleMatches.Count);
@@ -512,8 +517,6 @@ public class Match3Tests
                 _board.SetPieceAt(matchPiece, targetX, 0);
                 _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 2, 0);
                 _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 4, 0);
-
-                UnityEngine.Debug.Log(_board);
                 
                 CollectionAssert.IsEmpty(_board.GetAllPossibleMatchesLeft());
             }
@@ -811,7 +814,7 @@ public class Board
 
                 int randomValue = random.Next(tempList.Count);
                 var randomPiece = tempList[randomValue];
-                _board[x, y] = new BoardPiece(randomPiece);
+                SetPieceAt(new BoardPiece(randomPiece), x, y);
                 SetMovedPieceAt(x, y);
             }
         }
@@ -832,9 +835,21 @@ public class Board
         return sb.ToString();
     }
 
-    public void RandomFillUpCurrentPieces(int v)
+    public void ShufflePieces(int seed)
     {
-        throw new NotImplementedException();
+        var random = new Random(seed);
+        int maxY = _board.GetLength(1) - 1;
+        int maxX = _board.GetLength(0) - 1;
+
+        for (int y = 0; y < _board.GetLength(1); y++)
+        {
+            for (int x = 0; x < _board.GetLength(0); x++)
+            {
+                int rx = random.Next(0, maxX);
+                int ry = random.Next(0, maxY);
+                Swap(_board[x, y], _board[rx, ry]);
+            }
+        }
     }
 
     public bool AreThereAnyPossibleMatchesLeft()
