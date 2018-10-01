@@ -38,6 +38,13 @@ public class Match3Tests
                 CollectionAssert.IsEmpty(_board.GetMatchesFromMovedPieces());
             }
         }
+
+        [Test]
+        public void BoardReshuffle()
+        {
+            _board.RandomFillUp(0, 0, 1, 2);
+            _board.RandomFillUpCurrentPieces(1);
+        }
     }
 
     public class BoardPieceRemovalTests : BoardTests
@@ -449,6 +456,40 @@ public class Match3Tests
                 Assert.AreNotEqual(swappedPiece1, _board.GetPieceAt(x, targetY));
             }
         }
+
+        public class PossibleMatchesTests : BoardTests
+        {
+            [Test]
+            public void DetectPossibleMatches()
+            {
+                int targetX = 2;
+
+                BoardPiece matchPiece = new BoardPiece(0);
+                _board.SetPieceAt(matchPiece, targetX, 0);
+                _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 1, 1);
+                _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 2, 0);
+
+                Assert.IsTrue(_board.AreThereAnyPossibleMatchesLeft());
+            }
+
+            [Test]
+            public void ListPossibleMatches()
+            {
+                int targetX = 2;
+
+                BoardPiece matchPiece = new BoardPiece(0);
+                _board.SetPieceAt(matchPiece, targetX, 0);
+                _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 1, 1);
+                _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 2, 0);
+
+                UnityEngine.Debug.Log(_board);
+
+                var possibleMatches = _board.GetAllPossibleMatchesLeft();    //make unique
+                CollectionAssert.IsNotEmpty(possibleMatches);
+                Assert.AreEqual(1, possibleMatches.Count);
+                Assert.IsTrue(possibleMatches.TrueForAll(match => match.Match.TrueForAll(piece => piece.Type == matchPiece.Type)));
+            }
+        }
     }
 }
 
@@ -485,7 +526,7 @@ public class BoardPiece
 
     public bool Matches(BoardPiece targetPieceType)
     {
-        return targetPieceType.Type == Type;
+        return targetPieceType.Type != int.MinValue && Type != int.MinValue && targetPieceType.Type == Type;
     }
 }
 
@@ -497,7 +538,8 @@ public class Board
     private List<BoardPiece> _movedList = new List<BoardPiece>();
     private List<BoardPiece> _removedList = new List<BoardPiece>();
 
-    private List<Match> _matchList = new List<Match>();
+    private Matches _matches = new Matches();
+    private PossibleMatches _possibleMatches = new PossibleMatches();
 
     private BoardPiece _selectedPiece;
     private BoardPiece _swapCandidate;
@@ -560,9 +602,9 @@ public class Board
         return new BoardPiece(int.MinValue);
     }
 
-    public List<Match> GetMatchesFromMovedPieces()
+    public Matches GetMatchesFromMovedPieces()
     {
-        _matchList.Clear();
+        _matches.Clear();
         foreach (var moved in _movedList)
         {
             var targetPieceType = _board[moved.X, moved.Y];
@@ -612,19 +654,19 @@ public class Board
             if (horizontalMatch.Count >= _minMatchSize && verticalMatch.Count >= _minMatchSize)
             {
                 horizontalMatch.AddRange(verticalMatch);
-                _matchList.Add(horizontalMatch);
+                _matches.Add(horizontalMatch);
             }
             else if (horizontalMatch.Count >= _minMatchSize)
             {
-                _matchList.Add(horizontalMatch);
+                _matches.Add(horizontalMatch);
             }
             else if (verticalMatch.Count >= _minMatchSize)
             {
-                _matchList.Add(verticalMatch);
+                _matches.Add(verticalMatch);
             }
         }
 
-        return _matchList;
+        return _matches;
     }
 
     public void SelectPieceAt(int x, int y)
@@ -755,10 +797,161 @@ public class Board
         {
             for (int x = 0; x < _board.GetLength(0); x++)
             {
-                sb.Append(_board[x, y].Type);
+                sb.Append((_board[x, y].Type != int.MinValue) ? _board[x, y].Type.ToString() : "N");
             }
             sb.AppendLine();
         }
         return sb.ToString();
+    }
+
+    public void RandomFillUpCurrentPieces(int v)
+    {
+        throw new NotImplementedException();
+    }
+
+    public bool AreThereAnyPossibleMatchesLeft()
+    {        
+        for (int y = 0; y < _board.GetLength(1); y++)
+        {
+            for (int x = 0; x < _board.GetLength(0); x++)
+            {
+                // swap in 4 directions (if possible) and check each one
+                // left
+                if (x > 0)
+                {
+                    Swap(_board[x, y], _board[x - 1, y]);
+                    if (GetMatchesFromMovedPieces().Count > 0)
+                    {
+                        return true;
+                    }
+                    Swap(_board[x, y], _board[x - 1, y]);
+                    _movedList.Clear();
+                }
+
+                // right
+                if (x < _board.GetLength(0) - 1)
+                {
+                    Swap(_board[x, y], _board[x + 1, y]);
+                    if (GetMatchesFromMovedPieces().Count > 0)
+                    {
+                        return true;
+                    }
+                    Swap(_board[x, y], _board[x + 1, y]);
+                    _movedList.Clear();
+                }
+
+                // down
+                if (y > 0)
+                {
+                    Swap(_board[x, y], _board[x, y - 1]);
+                    if (GetMatchesFromMovedPieces().Count > 0)
+                    {
+                        return true;
+                    }
+                    Swap(_board[x, y], _board[x, y - 1]);
+                    _movedList.Clear();
+                }
+
+                // up
+                if (y < _board.GetLength(1) - 1)
+                {
+                    Swap(_board[x, y], _board[x, y + 1]);
+                    if (GetMatchesFromMovedPieces().Count > 0)
+                    {
+                        return true;
+                    }
+                    Swap(_board[x, y], _board[x, y + 1]);
+                    _movedList.Clear();
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public PossibleMatches GetAllPossibleMatchesLeft()
+    {
+        _possibleMatches.Clear();
+
+        for (int y = 0; y < _board.GetLength(1); y++)
+        {
+            for (int x = 0; x < _board.GetLength(0); x++)
+            {
+                // TODO: remove right and up tests?
+
+                // swap in 4 directions (if possible) and check each one
+                // left
+                if (x > 0)
+                {
+                    Swap(_board[x, y], _board[x - 1, y]);
+                    var matches = GetMatchesFromMovedPieces();
+                    foreach (var match in matches)
+                    {
+                        _possibleMatches.Add(new PossibleMatch(match, _board[x, y], _board[x - 1, y]));
+                    }
+                    Swap(_board[x, y], _board[x - 1, y]);
+                    _movedList.Clear();
+                }
+
+                // right
+                if (x < _board.GetLength(0) - 1)
+                {
+                    Swap(_board[x, y], _board[x + 1, y]);
+                    var matches = GetMatchesFromMovedPieces();
+                    foreach (var match in matches)
+                    {
+                        _possibleMatches.Add(new PossibleMatch(match, _board[x, y], _board[x + 1, y]));
+                    }
+                    Swap(_board[x, y], _board[x + 1, y]);
+                    _movedList.Clear();
+                }
+
+                // down
+                if (y > 0)
+                {
+                    Swap(_board[x, y], _board[x, y - 1]);
+                    var matches = GetMatchesFromMovedPieces();
+                    foreach(var match in matches)
+                    {
+                        _possibleMatches.Add(new PossibleMatch(match, _board[x, y], _board[x, y - 1]));
+                    }
+                    Swap(_board[x, y], _board[x, y - 1]);
+                    _movedList.Clear();
+                }
+
+                // up
+                if (y < _board.GetLength(1) - 1)
+                {
+                    Swap(_board[x, y], _board[x, y + 1]);
+                    var matches = GetMatchesFromMovedPieces();
+                    foreach (var match in matches)
+                    {
+                        _possibleMatches.Add(new PossibleMatch(match, _board[x, y], _board[x, y + 1]));
+                    }
+                    Swap(_board[x, y], _board[x, y + 1]);
+                    _movedList.Clear();
+                }
+            }
+        }
+
+        return _possibleMatches;
+    }
+}
+
+public class Matches : List<Match> { }
+
+public class PossibleMatches : List<PossibleMatch> { }
+
+public class PossibleMatch
+{
+    public readonly Match Match;
+    public readonly BoardPiece SwappedPiece1;
+    public readonly BoardPiece SwappedPiece2;
+
+    public PossibleMatch(Match match, BoardPiece swappedPiece1, BoardPiece swappedPiece2)
+    {
+        Match = match;
+        SwappedPiece1 = swappedPiece1;
+        SwappedPiece2 = swappedPiece2;
     }
 }
