@@ -17,6 +17,7 @@ public class Match3Tests
         {
             _board = new Board(_width, _height, _minMatchSize);
             _board.Fill(new BoardPiece(int.MinValue)); // TODO: uncouple this invalid value from int
+            // TODO: check sizes to make sure it builds what we set
         }
     }
 
@@ -31,17 +32,20 @@ public class Match3Tests
         [Test]
         public void RandomFillUpBoardWithoutMatches()
         {
+            // TODO: change this to  2 random compares
             // trying to force random test failures
             for (int i = 0; i < 100; i++)
             {
                 _board.RandomFillUp(i, 0, 1, 2);
                 CollectionAssert.IsEmpty(_board.GetMatchesFromMovedPieces());
+                _board.ConfirmMovedPieces();
             }
         }
 
         [Test]
         public void ShuffleBoard()
         {
+            // TODO: change this to  2 random compares
             // trying to force random test failures
             for (int i = 0; i < 100; i++)
             {
@@ -127,8 +131,15 @@ public class Match3Tests
             _board.SetMovedPieceAt(targetX, 0);
 
             var matches = _board.GetMatchesFromMovedPieces();
-            _board.RemovePiecesFromMatch(matches[0]);
-            Assert.IsTrue(!matches[0].Exists(piece => !piece.IsRemoved));
+            _board.RemovePiecesFromMatches(matches);
+
+            foreach (var match in matches)
+            {
+                foreach (var piece in match)
+                {
+                    Assert.IsTrue(piece.IsRemoved);
+                }
+            }
         }
     }
 
@@ -151,8 +162,12 @@ public class Match3Tests
                 var matches = _board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
                 Assert.AreEqual(1, matches.Count);
-                Assert.AreEqual(3, matches[0].Count);
-                CollectionAssert.Contains(matches[0], matchPiece);
+
+                foreach (var match in matches)
+                {
+                    Assert.AreEqual(3, match.Count);
+                    CollectionAssert.Contains(match, matchPiece);
+                }
             }
 
             [Test]
@@ -170,8 +185,11 @@ public class Match3Tests
                 var matches = _board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
                 Assert.AreEqual(1, matches.Count);
-                Assert.AreEqual(3, matches[0].Count);
-                CollectionAssert.Contains(matches[0], matchPiece);
+                foreach (var match in matches)
+                {
+                    Assert.AreEqual(3, match.Count);
+                    CollectionAssert.Contains(match, matchPiece);
+                }
             }
 
             [Test]
@@ -189,8 +207,11 @@ public class Match3Tests
                 var matches = _board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
                 Assert.AreEqual(1, matches.Count);
-                Assert.AreEqual(3, matches[0].Count);
-                CollectionAssert.Contains(matches[0], matchPiece);
+                foreach (var match in matches)
+                {
+                    Assert.AreEqual(3, match.Count);
+                    CollectionAssert.Contains(match, matchPiece);
+                }
             }
 
             [Test]
@@ -246,10 +267,12 @@ public class Match3Tests
                 var matches = _board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
                 Assert.AreEqual(2, matches.Count);
-                Assert.AreEqual(3, matches[0].Count);
-                Assert.AreEqual(3, matches[1].Count);
-                Assert.That((matches[0].Contains(matchPiece) && matches[1].Contains(matchPiece2))
-                    || (matches[0].Contains(matchPiece2) && matches[1].Contains(matchPiece)));
+
+                foreach (var match in matches)
+                {
+                    Assert.AreEqual(3, match.Count);
+                    Assert.That(match.Contains(matchPiece) || match.Contains(matchPiece2));
+                }
             }
 
             [Test]
@@ -268,7 +291,9 @@ public class Match3Tests
                 _board.SelectPieceAt(x, y);
                 _board.SelectPieceAt(targetX, y);
 
-                Assert.IsTrue(_board.TryToSwap());
+                Assert.IsTrue(_board.IsReadyToSwap);
+                _board.SwapCandidates();
+
                 Assert.AreEqual(swappedPiece2, _board.GetPieceAt(x, y));
                 Assert.AreNotEqual(swappedPiece1, _board.GetPieceAt(x, y));
                 Assert.AreEqual(swappedPiece1, _board.GetPieceAt(targetX, y));
@@ -291,11 +316,7 @@ public class Match3Tests
                 _board.SelectPieceAt(x, y);
                 _board.SelectPieceAt(targetX, y);
 
-                Assert.IsFalse(_board.TryToSwap());
-                Assert.AreEqual(swappedPiece1, _board.GetPieceAt(x, y));
-                Assert.AreNotEqual(swappedPiece2, _board.GetPieceAt(x, y));
-                Assert.AreEqual(swappedPiece2, _board.GetPieceAt(targetX, y));
-                Assert.AreNotEqual(swappedPiece1, _board.GetPieceAt(targetX, y));
+                Assert.IsFalse(_board.IsReadyToSwap);
             }
         }
         
@@ -316,8 +337,11 @@ public class Match3Tests
                 var matches = _board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
                 Assert.AreEqual(1, matches.Count);
-                Assert.AreEqual(3, matches[0].Count);
-                CollectionAssert.Contains(matches[0], matchPiece);
+                foreach (var match in matches)
+                {
+                    Assert.AreEqual(3, match.Count);
+                    CollectionAssert.Contains(match, matchPiece);
+                }
             }
 
             [Test]
@@ -335,8 +359,11 @@ public class Match3Tests
                 var matches = _board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
                 Assert.AreEqual(1, matches.Count);
-                Assert.AreEqual(3, matches[0].Count);
-                CollectionAssert.Contains(matches[0], matchPiece);
+                foreach (var match in matches)
+                {
+                    Assert.AreEqual(3, match.Count);
+                    CollectionAssert.Contains(match, matchPiece);
+                }
             }
 
             [Test]
@@ -354,8 +381,11 @@ public class Match3Tests
                 var matches = _board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
                 Assert.AreEqual(1, matches.Count);
-                Assert.AreEqual(3, matches[0].Count);
-                CollectionAssert.Contains(matches[0], matchPiece);
+                foreach (var match in matches)
+                {
+                    Assert.AreEqual(3, match.Count);
+                    CollectionAssert.Contains(match, matchPiece);
+                }
             }
 
             [Test]
@@ -411,10 +441,12 @@ public class Match3Tests
                 var matches = _board.GetMatchesFromMovedPieces();
                 CollectionAssert.IsNotEmpty(matches);
                 Assert.AreEqual(matches.Count, 2);
-                Assert.AreEqual(3, matches[0].Count);
-                Assert.AreEqual(3, matches[1].Count);
-                Assert.That((matches[0].Contains(matchPiece) && matches[1].Contains(matchPiece2))
-                    || (matches[0].Contains(matchPiece2) && matches[1].Contains(matchPiece)));
+
+                foreach (var match in matches)
+                {
+                    Assert.AreEqual(3, match.Count);
+                    Assert.That(match.Contains(matchPiece) || match.Contains(matchPiece2));
+                }
             }
 
             [Test]
@@ -433,7 +465,9 @@ public class Match3Tests
                 _board.SelectPieceAt(x, y);
                 _board.SelectPieceAt(x, targetY);
 
-                Assert.IsTrue(_board.TryToSwap());
+                Assert.IsTrue(_board.IsReadyToSwap);
+                _board.SwapCandidates();
+
                 Assert.AreEqual(swappedPiece2, _board.GetPieceAt(x, y));
                 Assert.AreNotEqual(swappedPiece1, _board.GetPieceAt(x, y));
                 Assert.AreEqual(swappedPiece1, _board.GetPieceAt(x, targetY));
@@ -456,11 +490,7 @@ public class Match3Tests
                 _board.SelectPieceAt(x, y);
                 _board.SelectPieceAt(x, targetY);
 
-                Assert.IsFalse(_board.TryToSwap());
-                Assert.AreEqual(swappedPiece1, _board.GetPieceAt(x, y));
-                Assert.AreNotEqual(swappedPiece2, _board.GetPieceAt(x, y));
-                Assert.AreEqual(swappedPiece2, _board.GetPieceAt(x, targetY));
-                Assert.AreNotEqual(swappedPiece1, _board.GetPieceAt(x, targetY));
+                Assert.IsFalse(_board.IsReadyToSwap);
             }
         }
 
@@ -502,10 +532,13 @@ public class Match3Tests
                 _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 2, 0);
                 _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 3, 0);
 
-                var possibleMatches = _board.GetAllPossibleMatchesLeft();    // TODO: make unique
+                var possibleMatches = _board.GetAllPossibleMatchesLeft();
                 CollectionAssert.IsNotEmpty(possibleMatches);
                 Assert.AreEqual(1, possibleMatches.Count);
-                Assert.IsTrue(possibleMatches.TrueForAll(match => match.Match.TrueForAll(piece => piece.Type == matchPiece.Type)));
+                foreach(var possibleMatch in possibleMatches)
+                {
+                    Assert.AreEqual(matchPiece.Type, possibleMatch.Type);
+                }
             }
 
             [Test]
@@ -522,9 +555,441 @@ public class Match3Tests
             }
         }
     }
+
+    public class Match3GameTests : BoardTests
+    {
+        [Test]
+        public void SuccessfulSwapFlowTest()
+        {
+            int targetX = 0;
+
+            BoardPiece matchPiece = new BoardPiece(0);
+            BoardPiece swapPiece = new BoardPiece(matchPiece);
+            BoardPiece thirdPiece = new BoardPiece(matchPiece);
+            _board.SetPieceAt(matchPiece, targetX, 0);
+            _board.SetPieceAt(swapPiece, targetX + 1, 1);
+            _board.SetPieceAt(thirdPiece, targetX + 2, 0);
+
+            BoardPiece pieceAboveMatchPiece = new BoardPiece(2);
+            BoardPiece pieceBelowSwapPiece = new BoardPiece(3);
+            BoardPiece pieceAboveThirdPiece = new BoardPiece(4);
+            _board.SetPieceAt(pieceAboveMatchPiece, targetX, 1);
+            _board.SetPieceAt(pieceBelowSwapPiece, targetX + 1, 0);
+            _board.SetPieceAt(pieceAboveThirdPiece, targetX + 2, 1);
+
+            var game = new Match3Game(_board);
+
+            // select a piece
+            _board.SelectPieceAt(targetX + 1, 0);
+            game.Process();
+
+            // select a second piece
+            _board.SelectPieceAt(targetX + 1, 1);
+            game.Process();
+
+            // assert that they swapped
+            Assert.IsTrue(_board.IsSwapping);
+            game.Process();
+
+            // assert that there were matches
+            Assert.IsTrue(_board.ThereAreMatches);
+            game.Process();
+
+            // assert that pieces were removed
+            Assert.IsTrue(_board.ThereAreRemovedPieces);
+            game.Process();
+
+            // assert that pieces moved down
+            Assert.IsTrue(_board.ThereAreMovedPieces);
+            game.Process();
+
+            // assert that there are no matches
+            Assert.IsFalse(_board.ThereAreMatches);
+            game.Process();
+
+            Assert.IsFalse(_board.IsSwapping);
+            Assert.IsFalse(_board.ThereAreMatches);
+            Assert.IsFalse(_board.ThereAreRemovedPieces);
+            Assert.IsFalse(_board.ThereAreMovedPieces);
+
+            // assert that the swap effects are over
+            Assert.IsTrue(_board.IsReadyForInput);
+        }
+
+        [Test]
+        public void SuccessfulSwapWithDoubleMatchFlowTest()
+        {
+            int targetX = 0;
+
+            BoardPiece matchPiece = new BoardPiece(0);
+            BoardPiece swapPiece = new BoardPiece(matchPiece);
+            BoardPiece thirdPiece = new BoardPiece(matchPiece);
+            _board.SetPieceAt(matchPiece, targetX, 0);
+            _board.SetPieceAt(swapPiece, targetX + 1, 1);
+            _board.SetPieceAt(thirdPiece, targetX + 2, 0);
+
+            BoardPiece pieceAboveMatchPiece = new BoardPiece(2);
+            BoardPiece pieceBelowSwapPiece = new BoardPiece(pieceAboveMatchPiece);
+            BoardPiece pieceAboveThirdPiece = new BoardPiece(pieceAboveMatchPiece);
+            _board.SetPieceAt(pieceAboveMatchPiece, targetX, 1);
+            _board.SetPieceAt(pieceBelowSwapPiece, targetX + 1, 0);
+            _board.SetPieceAt(pieceAboveThirdPiece, targetX + 2, 1);
+
+            var game = new Match3Game(_board);
+
+            // select a piece
+            _board.SelectPieceAt(targetX + 1, 0);
+            game.Process();
+
+            // select a second piece
+            _board.SelectPieceAt(targetX + 1, 1);
+            game.Process();
+
+            // assert that they swapped
+            Assert.IsTrue(_board.IsSwapping);
+            game.Process();
+
+            // assert that there were matches
+            Assert.IsTrue(_board.ThereAreMatches);
+            game.Process();
+
+            // assert that pieces were removed
+            Assert.IsTrue(_board.ThereAreRemovedPieces);
+            game.Process();
+
+            // assert that pieces moved down
+            Assert.IsTrue(_board.ThereAreMovedPieces);
+            game.Process();
+
+            // assert that there are no matches
+            Assert.IsFalse(_board.ThereAreMatches);
+            game.Process();
+
+            Assert.IsFalse(_board.IsSwapping);
+            Assert.IsFalse(_board.ThereAreMatches);
+            Assert.IsFalse(_board.ThereAreRemovedPieces);
+            Assert.IsFalse(_board.ThereAreMovedPieces);
+
+            // assert that the swap effects are over
+            Assert.IsTrue(_board.IsReadyForInput);
+        }
+
+        [Test]
+        public void SuccessfulSwapWithMatchesOnFallingPiecesFlowTest()
+        {
+            int targetX = 0;
+
+            BoardPiece swapPiece = new BoardPiece(0);
+            BoardPiece secondPiece = new BoardPiece(swapPiece);
+            BoardPiece thirdPiece = new BoardPiece(swapPiece);
+            _board.SetPieceAt(swapPiece, targetX, 1);
+            _board.SetPieceAt(secondPiece, targetX + 1, 0);
+            _board.SetPieceAt(thirdPiece, targetX + 2, 0);
+
+            BoardPiece pieceBelowSwapPiece = new BoardPiece(1);
+            BoardPiece pieceAboveSecondPiece = new BoardPiece(2);
+            BoardPiece pieceAboveThirdPiece = new BoardPiece(pieceAboveSecondPiece);
+            BoardPiece fourthPiece = new BoardPiece(pieceAboveSecondPiece);
+            _board.SetPieceAt(pieceBelowSwapPiece, targetX, 0);
+            _board.SetPieceAt(pieceAboveSecondPiece, targetX + 1, 1);
+            _board.SetPieceAt(pieceAboveThirdPiece, targetX + 2, 1);
+            _board.SetPieceAt(fourthPiece, targetX + 3, 0);
+
+            var game = new Match3Game(_board);
+
+            // select a piece
+            _board.SelectPieceAt(targetX, 0);
+            game.Process();
+
+            // select a second piece
+            _board.SelectPieceAt(targetX, 1);
+            game.Process();
+
+            // assert that they swapped
+            Assert.IsTrue(_board.IsSwapping);
+            game.Process();
+
+            // assert that there were matches
+            Assert.IsTrue(_board.ThereAreMatches);
+            Assert.AreEqual(1, _board.GetMatchesFromMovedPieces().Count);
+            game.Process();
+
+            // assert that pieces were removed
+            Assert.IsTrue(_board.ThereAreRemovedPieces);
+            game.Process();
+
+            // assert that pieces moved down
+            Assert.IsTrue(_board.ThereAreMovedPieces);
+            game.Process();
+
+            // assert that there are more matches
+            Assert.IsTrue(_board.ThereAreMatches);
+            Assert.AreEqual(1, _board.GetMatchesFromMovedPieces().Count);
+            game.Process();
+
+            // assert that pieces were removed
+            Assert.IsTrue(_board.ThereAreRemovedPieces);
+            game.Process();
+
+            // assert that pieces moved down
+            Assert.IsTrue(_board.ThereAreMovedPieces);
+            game.Process();
+
+            // assert that there are no matches
+            Assert.IsFalse(_board.ThereAreMatches);
+            game.Process();
+
+            Assert.IsFalse(_board.IsSwapping);
+            Assert.IsFalse(_board.ThereAreMatches);
+            Assert.IsFalse(_board.ThereAreRemovedPieces);
+            Assert.IsFalse(_board.ThereAreMovedPieces);
+
+            // assert that the swap effects are over
+            Assert.IsTrue(_board.IsReadyForInput);
+        }
+
+        [Test]
+        public void FailedSwapFlowTest()
+        {
+            int targetX = 0;
+
+            BoardPiece matchPiece = new BoardPiece(0);
+            BoardPiece swapPiece = new BoardPiece(matchPiece);
+            BoardPiece thirdPiece = new BoardPiece(matchPiece);
+            _board.SetPieceAt(matchPiece, targetX, 0);
+            _board.SetPieceAt(swapPiece, targetX + 1, 1);
+            _board.SetPieceAt(thirdPiece, targetX + 3, 0);
+
+            BoardPiece pieceAboveMatchPiece = new BoardPiece(2);
+            BoardPiece pieceBelowSwapPiece = new BoardPiece(3);
+            BoardPiece pieceAboveThirdPiece = new BoardPiece(4);
+            _board.SetPieceAt(pieceAboveMatchPiece, targetX, 1);
+            _board.SetPieceAt(pieceBelowSwapPiece, targetX + 1, 0);
+            _board.SetPieceAt(pieceAboveThirdPiece, targetX + 2, 1);
+
+            var game = new Match3Game(_board);
+
+            // select a piece
+            _board.SelectPieceAt(targetX + 1, 0);
+            game.Process();
+
+            // select a second piece
+            _board.SelectPieceAt(targetX + 1, 1);
+            game.Process();
+
+            // assert that they swapped
+            Assert.IsTrue(_board.IsSwapping);
+            game.Process();
+
+            // assert that there were matches
+            Assert.IsFalse(_board.ThereAreMatches);
+            game.Process();
+
+            // assert that moved pieces got back to their places without moving anyone else
+            Assert.IsFalse(_board.ThereAreMovedPieces);
+
+            // assert that the swap effects are over
+            Assert.IsTrue(_board.IsReadyForInput);
+        }
+
+        [Test]
+        public void FailedToSwapFlowTest()
+        {
+            int targetX = 0;
+
+            BoardPiece matchPiece = new BoardPiece(0);
+            BoardPiece swapPiece = new BoardPiece(matchPiece);
+            BoardPiece thirdPiece = new BoardPiece(matchPiece);
+            _board.SetPieceAt(matchPiece, targetX, 0);
+            _board.SetPieceAt(swapPiece, targetX + 1, 1);
+            _board.SetPieceAt(thirdPiece, targetX + 3, 0);
+
+            BoardPiece pieceAboveMatchPiece = new BoardPiece(2);
+            BoardPiece pieceBelowSwapPiece = new BoardPiece(3);
+            BoardPiece pieceAboveThirdPiece = new BoardPiece(4);
+            _board.SetPieceAt(pieceAboveMatchPiece, targetX, 1);
+            _board.SetPieceAt(pieceBelowSwapPiece, targetX + 1, 0);
+            _board.SetPieceAt(pieceAboveThirdPiece, targetX + 2, 1);
+
+            var game = new Match3Game(_board);
+
+            // select a piece
+            _board.SelectPieceAt(targetX + 1, 0);
+            game.Process();
+
+            // select a second piece
+            _board.SelectPieceAt(targetX + 1, 2);
+            game.Process();
+
+            // assert that they swapped
+            Assert.IsFalse(_board.IsSwapping);
+            game.Process();
+            
+            // assert that moved pieces got back to their places without moving anyone else
+            Assert.IsFalse(_board.ThereAreMovedPieces);
+
+            // assert that the swap effects are over
+            Assert.IsTrue(_board.IsReadyForInput);
+        }
+    }
 }
 
-public class Match : List<BoardPiece> { }
+public class Match3Game
+{
+    private Board _board;
+    
+    private enum EState
+    {
+        WaitingToSwap,
+        Swapping,
+        CheckingMatches,
+        SwappingBack,
+        RemovingMatchPieces,
+        MovingDownPieces,
+    }
+
+    private EState _currentState;
+    private Matches _currentMatches;
+
+    public Match3Game(Board board)
+    {
+        _board = board;
+        _currentState = EState.WaitingToSwap;
+    }
+
+    public void Process()
+    {
+        switch (_currentState)
+        {
+            case EState.WaitingToSwap:
+                if (!_board.IsReadyToSwap)
+                {
+                    return;
+                }
+
+                _board.SwapCandidates();
+                _currentState = EState.CheckingMatches;
+                break;
+
+            case EState.CheckingMatches:
+                _currentMatches = _board.GetMatchesFromMovedPieces();
+                if (_currentMatches.Count <= 0)
+                {
+                    if (_board.IsSwapping)
+                    {
+                        _currentState = EState.SwappingBack;
+                    }
+                    else
+                    {
+                        _board.ConfirmMovedPieces();
+                        _currentState = EState.WaitingToSwap;
+                    }
+                }
+                else
+                {
+                    if (_board.IsSwapping)
+                    {
+                        _board.ConfirmSwappedPieces();
+                    }
+                    _currentState = EState.RemovingMatchPieces;
+                }
+                break;
+
+            case EState.SwappingBack:
+                _board.SwapCandidates();
+                _board.ConfirmMovedPieces();
+                _currentState = EState.WaitingToSwap;
+                break;
+
+            case EState.RemovingMatchPieces:
+                _board.RemovePiecesFromMatches(_currentMatches);
+                _currentState = EState.MovingDownPieces;
+                break;
+
+            case EState.MovingDownPieces:
+                _board.MovePiecesDown();
+                _currentState = EState.CheckingMatches;
+                break;
+        }
+    }
+}
+
+public class GameTimer
+{
+    public float RemainingTime { get; private set; }
+    public bool TimeIsUp { get; private set; }
+
+    public void SetTime(float time)
+    {
+        RemainingTime = time;
+    }
+
+    public void UpdateTimePassed(float timePassed)
+    {
+        RemainingTime -= timePassed;
+        if (RemainingTime <= 0)
+        {
+            RemainingTime = 0;
+            TimeIsUp = true;
+        }
+    }
+}
+
+public class Match : HashSet<BoardPiece>
+{
+    public int Type { get; private set; }
+
+    public Match(int type) : base()
+    {
+        Type = type;
+    }
+
+    public override string ToString()
+    {
+        string items = string.Empty;
+        bool first = true;
+        foreach(var item in this)
+        {
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                items += ", ";
+            }
+            items += item;
+        }
+
+        return string.Format("[Type={0}, Items={1}]",
+            Type, items);
+    }
+
+    public override bool Equals(object obj)
+    {
+        var other = obj as Match;
+        if (other == null)
+        {
+            return false;
+        }
+
+        return SetEquals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        // TODO: evaluate this
+        unchecked
+        {
+            int hash = 17;
+            foreach (var item in this)
+            {
+                hash += item.GetHashCode();
+            }
+            return hash;
+        }
+    }
+}
 
 public class BoardPiece
 {
@@ -559,6 +1024,40 @@ public class BoardPiece
     {
         return targetPieceType.Type != int.MinValue && Type != int.MinValue && targetPieceType.Type == Type;
     }
+
+    public override string ToString()
+    {
+        return string.Format("[X={0}, Y={1}, IsRemoved={2}, Type={3}]",
+            X, Y, IsRemoved, Type);
+    }
+
+    public override bool Equals(object obj)
+    {
+        var other = obj as BoardPiece;
+        if (other == null)
+        {
+            return false;
+        }
+
+        return other.X == X
+            && other.Y == Y
+            && other.IsRemoved == other.IsRemoved
+            && other.Type == Type;
+    }
+
+    public override int GetHashCode()
+    {
+        // TODO: evaluate this
+        unchecked
+        {
+            int hash = 17;
+            hash = hash * 23 ^ X.GetHashCode();
+            hash = hash * 23 ^ Y.GetHashCode();
+            hash = hash * 23 ^ IsRemoved.GetHashCode();
+            hash = hash * 23 ^ Type.GetHashCode();
+            return hash;
+        }
+    }
 }
 
 public class Board
@@ -574,6 +1073,13 @@ public class Board
 
     private BoardPiece _selectedPiece;
     private BoardPiece _swapCandidate;
+
+    public bool IsReadyToSwap { get { return (_selectedPiece != null && _swapCandidate != null); } }
+    public bool IsSwapping { get; private set; }
+    public bool ThereAreMatches { get { return _matches.Count > 0; } }
+    public bool ThereAreRemovedPieces { get { return _removedList.Count > 0; } }
+    public bool ThereAreMovedPieces { get { return _movedList.Count > 0; } }
+    public bool IsReadyForInput { get { return !IsSwapping && !ThereAreRemovedPieces && !ThereAreMovedPieces && !ThereAreMatches; } }
 
     public Board(int width, int height, int minMatchSize)
     {
@@ -611,10 +1117,18 @@ public class Board
             int length = _board.GetLength(1);
             for (int j = removed.Y; j < length - 1; j++)
             {
-                _board[removed.X, j] = _board[removed.X, j + 1];
+                MovePieceTo(_board[removed.X, j + 1], removed.X, j);
             }
             _board[removed.X, length - 1] = GetNewBoardPiece();
         }
+
+        _removedList.Clear();
+    }
+
+    private void MovePieceTo(BoardPiece boardPiece, int x, int y)
+    {
+        SetPieceAt(boardPiece, x, y);
+        SetMovedPieceAt(x, y);
     }
 
     public void SetMovedPieceAt(int x, int y)
@@ -636,55 +1150,54 @@ public class Board
     public Matches GetMatchesFromMovedPieces()
     {
         _matches.Clear();
-        foreach (var moved in _movedList)
+        foreach (var movedPiece in _movedList)
         {
-            var targetPieceType = _board[moved.X, moved.Y];
-            var horizontalMatch = new Match() { targetPieceType };
-            var verticalMatch = new Match() { targetPieceType };
+            var horizontalMatch = new Match(movedPiece.Type) { movedPiece };
+            var verticalMatch = new Match(movedPiece.Type) { movedPiece };
 
             // check left
-            for (int i = moved.X - 1; i >= 0; i--)
+            for (int i = movedPiece.X - 1; i >= 0; i--)
             {
-                if (!_board[i, moved.Y].Matches(targetPieceType))
+                if (!_board[i, movedPiece.Y].Matches(movedPiece))
                 {
                     break;
                 }
-                horizontalMatch.Add(_board[i, moved.Y]);
+                horizontalMatch.Add(_board[i, movedPiece.Y]);
             }
 
             // check right
-            for (int i = moved.X + 1; i < _board.GetLength(0); i++)
+            for (int i = movedPiece.X + 1; i < _board.GetLength(0); i++)
             {
-                if (!_board[i, moved.Y].Matches(targetPieceType))
+                if (!_board[i, movedPiece.Y].Matches(movedPiece))
                 {
                     break;
                 }
-                horizontalMatch.Add(_board[i, moved.Y]);
+                horizontalMatch.Add(_board[i, movedPiece.Y]);
             }
 
             // check up
-            for (int j = moved.Y + 1; j < _board.GetLength(1); j++)
+            for (int j = movedPiece.Y + 1; j < _board.GetLength(1); j++)
             {
-                if (!_board[moved.X, j].Matches(targetPieceType))
+                if (!_board[movedPiece.X, j].Matches(movedPiece))
                 {
                     break;
                 }
-                verticalMatch.Add(_board[moved.X, j]);
+                verticalMatch.Add(_board[movedPiece.X, j]);
             }
 
             // check down
-            for (int j = moved.Y - 1; j >= 0; j--)
+            for (int j = movedPiece.Y - 1; j >= 0; j--)
             {
-                if (!_board[moved.X, j].Matches(targetPieceType))
+                if (!_board[movedPiece.X, j].Matches(movedPiece))
                 {
                     break;
                 }
-                verticalMatch.Add(_board[moved.X, j]);
+                verticalMatch.Add(_board[movedPiece.X, j]);
             }
             
             if (horizontalMatch.Count >= _minMatchSize && verticalMatch.Count >= _minMatchSize)
             {
-                horizontalMatch.AddRange(verticalMatch);
+                horizontalMatch.UnionWith(verticalMatch);
                 _matches.Add(horizontalMatch);
             }
             else if (horizontalMatch.Count >= _minMatchSize)
@@ -718,15 +1231,13 @@ public class Board
             || Math.Abs(piece1.Y - piece2.Y) == 1;
     }
 
-    public bool TryToSwap()
+    public void SwapCandidates()
     {
-        if (_selectedPiece == null || _swapCandidate == null)
-        {
-            return false;
-        }
+        Assert.IsNotNull(_selectedPiece);
+        Assert.IsNotNull(_swapCandidate);
 
         Swap(_selectedPiece, _swapCandidate);
-        return true;
+        IsSwapping = !IsSwapping;
     }
 
     private void Swap(BoardPiece piece1, BoardPiece piece2)
@@ -931,22 +1442,67 @@ public class Board
 
         return _possibleMatches;
     }
+
+    public void RemovePiecesFromMatches(Matches currentMatches)
+    {
+        foreach (var match in currentMatches)
+        {
+            RemovePiecesFromMatch(match);
+        }
+    }
+
+    public void ConfirmMovedPieces()
+    {
+        _movedList.Clear();
+    }
+
+    public void ConfirmSwappedPieces()
+    {
+        IsSwapping = false;
+        _selectedPiece = _swapCandidate = null;
+    }
 }
 
-public class Matches : List<Match> { }
+public class Matches : HashSet<Match> { }
 
-public class PossibleMatches : List<PossibleMatch> { }
+public class PossibleMatches : HashSet<PossibleMatch> { }
 
 public class PossibleMatch
 {
     public readonly Match Match;
-    public readonly BoardPiece SwappedPiece1;
-    public readonly BoardPiece SwappedPiece2;
+    public readonly SwappedPieces SwappedPieces = new SwappedPieces();
+
+    public int Type { get { return Match.Type; } }
 
     public PossibleMatch(Match match, BoardPiece swappedPiece1, BoardPiece swappedPiece2)
     {
         Match = match;
-        SwappedPiece1 = swappedPiece1;
-        SwappedPiece2 = swappedPiece2;
+        SwappedPieces.Add(swappedPiece1);
+        SwappedPieces.Add(swappedPiece2);
+    }
+
+    public override bool Equals(object obj)
+    {
+        var other = obj as PossibleMatch;
+        if (other == null)
+        {
+            return base.Equals(obj);
+        }
+
+        return Match.SetEquals(other.Match) && SwappedPieces.SetEquals(other.SwappedPieces);
+    }
+
+    public override int GetHashCode()
+    {
+        // TODO: evaluate this
+        unchecked
+        {
+            int hash = 17;
+            hash = hash * 23 ^ Match.GetHashCode();
+            hash = hash * 23 ^ SwappedPieces.GetHashCode();
+            return hash;
+        }
     }
 }
+
+public class SwappedPieces : HashSet<BoardPiece> { }
