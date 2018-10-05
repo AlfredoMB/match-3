@@ -39,6 +39,7 @@ GameObject:
   - component: {fileID: 95795188063795040}
   - component: {fileID: 114549145400722004}
   - component: {fileID: 114433378431793824}
+  - component: {fileID: 114570741134390784}
   m_Layer: 5
   m_Name: PieceView
   m_TagString: Untagged
@@ -96,6 +97,19 @@ MonoBehaviour:
   AlternativeParameter: Alternative
   SwapSpeed: 0
   FallBehaviour: {fileID: 114433378431793824}
+  SwapBehaviour: {fileID: 114570741134390784}
+--- !u!114 &114570741134390784
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1524202158214728}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: faea83349c2cf1e42b5f9d6b603d653f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SwapSpeed: 4
 --- !u!114 &114644928448071492
 MonoBehaviour:
   m_ObjectHideFlags: 1

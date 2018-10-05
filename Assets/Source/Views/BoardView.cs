@@ -61,12 +61,14 @@ public class BoardView : MonoBehaviour
 
         var neighbor = _pieceViews[neighborX, neighborY];
 
-        //Debug.Log(pieceView.X + " " + pieceView.Y + " swaps with " + neighborX + " " + neighborY);
+        Debug.Log(pieceView.X + " " + pieceView.Y + " swaps with " + neighborX + " " + neighborY);
 
         _pieceViews[pieceView.X, pieceView.Y] = neighbor;
         neighbor.SetReference(pieceView.X, pieceView.Y);
+        neighbor.PlaySwap();
 
         _pieceViews[neighborX, neighborY] = pieceView;
         pieceView.SetReference(neighborX, neighborY);
+        pieceView.PlaySwap();
     }
 }

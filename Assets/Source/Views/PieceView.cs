@@ -26,10 +26,12 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerExitHandler
     {
         _boardView = boardView;
         SetReference(x, y);
-        MyRectTransform.position = MyRectTransform.position + new Vector3(0, 20);
+        MyRectTransform.position = Reference.position + new Vector3(0, 20);
 
         MyImage.sprite = sprite;
-        FallBehaviour.FallToReference(this);
+        FallBehaviour.Initialize(this);
+        SwapBehaviour.Initialize(this);
+        FallBehaviour.Play();
     }
 
     public void SetReference(int x, int y)
@@ -37,33 +39,11 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerExitHandler
         X = x;
         Y = y;
         Reference = _boardView.GetReference(x, y);
-
-        // needed?
-        MyRectTransform.position = Reference.position;
-    }
-
-    private void OnEnable()
-    {
-        _hasReachedReferenceForSwap = true;
-    }
-
-    private void Update()
-    {
-        /*
-        if (!_hasReachedReferenceForSwap)
-        {
-            Transform.position = (Reference.position - Transform.position).normalized * SwapSpeed * Time.deltaTime;
-            
-            if (Transform.position.y <= Reference.position.y || Mathf.Approximately(Transform.position.y, Reference.position.y))
-            {
-                _hasReachedReferenceForSwap = true;
-            }
-        }*/
     }
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        //Debug.Log(X + " " + Y);
+        Debug.Log(X + " " + Y);
         _isBeingDragged = true;
     }
 
@@ -96,5 +76,10 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerExitHandler
             // down
             _boardView.SwapWithNeighbor(this, 0, -1);
         }
+    }
+
+    public void PlaySwap()
+    {
+        SwapBehaviour.Play();
     }
 }

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class FallBehaviour : MonoBehaviour
+public class FallBehaviour : PieceBehaviour
 {
     public string ShakeParameter = "Shake";
     public string AlternativeParameter = "Alternative";
@@ -12,16 +12,10 @@ public class FallBehaviour : MonoBehaviour
     private int _shakeParameterHash;
     private int _alternativeParameterHash;
 
-    private PieceView _pieceView;
-
-    private RectTransform _myRectTransform { get { return _pieceView.MyRectTransform; } }
-    private Animator _myAnimator { get { return _pieceView.MyAnimator; } }
-    private RectTransform _reference { get { return _pieceView.Reference; } }
-
-    public void FallToReference(PieceView pieceView)
+    public override void Play()
     {
-        _pieceView = pieceView;
-        enabled = true;
+        _currentSpeed = 0;
+        base.Play();
     }
 
     private void Start()
@@ -31,11 +25,6 @@ public class FallBehaviour : MonoBehaviour
         _myAnimator.SetBool(_shakeParameterHash, false);
         _myAnimator.SetBool(_alternativeParameterHash, false);
     }
-    
-    private void OnEnable()
-    {
-        _currentSpeed = 0;
-    }
 
     private void Update()
     {
@@ -44,6 +33,7 @@ public class FallBehaviour : MonoBehaviour
 
         if (_myRectTransform.position.y <= _reference.position.y || Mathf.Approximately(_myRectTransform.position.y, _reference.position.y))
         {
+            _myRectTransform.position = _reference.position;
             _myAnimator.SetBool(_shakeParameterHash, true);
             _myAnimator.SetBool(_alternativeParameterHash, UnityEngine.Random.Range(0, 1) > 0);
             enabled = false;
