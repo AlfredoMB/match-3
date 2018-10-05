@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class BoardView : MonoBehaviour
 {
-    public PieceView[] PiecePrefabs;
+    public PieceView PieceViewPrefab;
+    public Sprite[] PieceImages;
     public Transform PositionReferences;
 
     public Transform PieceContainer;
@@ -26,9 +27,9 @@ public class BoardView : MonoBehaviour
             for (int x = 0; x < _board.Width; x++)
             {
                 var boardPiece = _board.GetPieceAt(x, y);
-                var piece = Instantiate(PiecePrefabs[boardPiece.Type], PieceContainer);
+                var piece = Instantiate(PieceViewPrefab, PieceContainer);
                 _pieceViews[x, y] = piece;
-                piece.Initialize(this, x, y);
+                piece.Initialize(this, x, y, PieceImages[boardPiece.Type]);
                 yield return null;
             }
         }
@@ -48,12 +49,24 @@ public class BoardView : MonoBehaviour
         return PositionReferences.GetChild(x + y * _board.Width) as RectTransform;
     }
 
-    public PieceView GetPieceView(int x, int y)
+    public void SwapWithNeighbor(PieceView pieceView, int dx, int dy)
     {
-        if (IsOutOfBounds(x, y))
+        int neighborX = pieceView.X + dx;
+        int neighborY = pieceView.Y + dy;
+
+        if (IsOutOfBounds(neighborX, neighborY))
         {
-            return null;
+            return;
         }
-        return _pieceViews[x, y];
+
+        var neighbor = _pieceViews[neighborX, neighborY];
+
+        //Debug.Log(pieceView.X + " " + pieceView.Y + " swaps with " + neighborX + " " + neighborY);
+
+        _pieceViews[pieceView.X, pieceView.Y] = neighbor;
+        neighbor.SetReference(pieceView.X, pieceView.Y);
+
+        _pieceViews[neighborX, neighborY] = pieceView;
+        pieceView.SetReference(neighborX, neighborY);
     }
 }

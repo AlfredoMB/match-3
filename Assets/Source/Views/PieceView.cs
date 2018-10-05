@@ -1,77 +1,54 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerExitHandler
 {
     public RectTransform MyRectTransform;
     public Animator MyAnimator;
+    public Image MyImage;
     public string ShakeParameter = "Shake";
     public string AlternativeParameter = "Alternative";
     public float SwapSpeed;
 
-    public float Gravity;
-
-    private RectTransform _reference;
-
-    private float _currentSpeed;
-    private int _shakeParameterHash;
-    private int _alternativeParameterHash;
-
+    public FallBehaviour FallBehaviour;
+    public SwapBehaviour SwapBehaviour;
+    
     private BoardView _boardView;
-    private bool _hasReachedReference;
     private bool _hasReachedReferenceForSwap;
     private bool _isBeingDragged;
 
     public int X { get; private set; }
     public int Y { get; private set; }
+    public RectTransform Reference { get; private set; }
 
-    public void Initialize(BoardView boardView, int x, int y)
+    public void Initialize(BoardView boardView, int x, int y, Sprite sprite)
     {
         _boardView = boardView;
         SetReference(x, y);
         MyRectTransform.position = MyRectTransform.position + new Vector3(0, 20);
+
+        MyImage.sprite = sprite;
+        FallBehaviour.FallToReference(this);
     }
 
     public void SetReference(int x, int y)
     {
         X = x;
         Y = y;
-        _reference = _boardView.GetReference(x, y);
+        Reference = _boardView.GetReference(x, y);
 
         // needed?
-        MyRectTransform.position = _reference.position;
-    }
-
-    private void Start()
-    {
-        _shakeParameterHash = Animator.StringToHash(ShakeParameter);
-        _alternativeParameterHash = Animator.StringToHash(AlternativeParameter);
-        MyAnimator.SetBool(_shakeParameterHash, false);
-        MyAnimator.SetBool(_alternativeParameterHash, false);
+        MyRectTransform.position = Reference.position;
     }
 
     private void OnEnable()
     {
-        _currentSpeed = 0;
-        _hasReachedReference = false;
         _hasReachedReferenceForSwap = true;
     }
 
     private void Update()
     {
-        if (!_hasReachedReference)
-        {
-            _currentSpeed += Gravity * Time.deltaTime;
-            MyRectTransform.position = new Vector3(MyRectTransform.position.x, Mathf.Max(MyRectTransform.position.y + _currentSpeed, _reference.position.y));
-
-            if (MyRectTransform.position.y <= _reference.position.y || Mathf.Approximately(MyRectTransform.position.y, _reference.position.y))
-            {
-                MyAnimator.SetBool(_shakeParameterHash, true);
-                MyAnimator.SetBool(_alternativeParameterHash, UnityEngine.Random.Range(0, 1) > 0);
-                _hasReachedReference = true;
-            }
-        }
         /*
         if (!_hasReachedReferenceForSwap)
         {
@@ -86,53 +63,38 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerExitHandler
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        Debug.Log("OnPointerDown " + this, this);
+        //Debug.Log(X + " " + Y);
         _isBeingDragged = true;
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        Debug.Log("OnPointerExit " + this, this);
         if (!_isBeingDragged)
         {
             return;
         }
         _isBeingDragged = false;
 
-        var angle = Vector2.SignedAngle(_reference.up, eventData.position - eventData.pressPosition);
+        var angle = Vector2.SignedAngle(Reference.up, eventData.position - eventData.pressPosition);
         if (angle > -45 && angle < 45)
         {
             // up
-            SwapWithNeighbor(0, 1);
+            _boardView.SwapWithNeighbor(this, 0, 1);
         }
         else if (angle >= 45 && angle < 135)
         {
             // left
-            SwapWithNeighbor(-1, 0);
+            _boardView.SwapWithNeighbor(this, -1, 0);
         }
         else if (angle <= -45 && angle > -135)
         {
             // right
-            SwapWithNeighbor(1, 0);
+            _boardView.SwapWithNeighbor(this, 1, 0);
         }
         else
         {
             // down
-            SwapWithNeighbor(0, -1);
+            _boardView.SwapWithNeighbor(this, 0, -1);
         }
-    }
-
-    private void SwapWithNeighbor(int dx, int dy)
-    {
-        SwapWith(_boardView.GetPieceView(X + dx, Y + dy));
-    }
-
-    public void SwapWith(PieceView other)
-    {
-        int otherX = other.X;
-        int otherY = other.Y;
-
-        other.SetReference(X, Y);
-        SetReference(otherX, otherY);
     }
 }
