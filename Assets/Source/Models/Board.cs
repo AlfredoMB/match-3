@@ -4,8 +4,11 @@ using System.Text;
 
 public class Board
 {
+    public delegate void SwappedEventHandler(object sender, SwappedEventArgs e);
+
+    public event SwappedEventHandler Swapped;
+
     private readonly BoardPiece[,] _board;
-    private readonly int _minMatchSize;
 
     private List<BoardPiece> _movedList = new List<BoardPiece>();
     private List<BoardPiece> _removedList = new List<BoardPiece>();
@@ -16,6 +19,10 @@ public class Board
     private BoardPiece _selectedPiece;
     private BoardPiece _swapCandidate;
 
+    public readonly int Width;
+    public readonly int Height;
+    public readonly int MinMatchSize;
+
     public bool IsReadyToSwap { get { return (_selectedPiece != null && _swapCandidate != null); } }
     public bool IsSwapping { get; private set; }
     public bool ThereAreMatches { get { return _matches.Count > 0; } }
@@ -25,8 +32,10 @@ public class Board
 
     public Board(int width, int height, int minMatchSize)
     {
+        Width = width;
+        Height = height;
         _board = new BoardPiece[width, height];
-        _minMatchSize = minMatchSize;
+        MinMatchSize = minMatchSize;
     }
 
     public void Fill(params BoardPiece[] pieces)
@@ -137,16 +146,16 @@ public class Board
                 verticalMatch.Add(_board[movedPiece.X, j]);
             }
             
-            if (horizontalMatch.Count >= _minMatchSize && verticalMatch.Count >= _minMatchSize)
+            if (horizontalMatch.Count >= MinMatchSize && verticalMatch.Count >= MinMatchSize)
             {
                 horizontalMatch.UnionWith(verticalMatch);
                 _matches.Add(horizontalMatch);
             }
-            else if (horizontalMatch.Count >= _minMatchSize)
+            else if (horizontalMatch.Count >= MinMatchSize)
             {
                 _matches.Add(horizontalMatch);
             }
-            else if (verticalMatch.Count >= _minMatchSize)
+            else if (verticalMatch.Count >= MinMatchSize)
             {
                 _matches.Add(verticalMatch);
             }
@@ -157,13 +166,19 @@ public class Board
 
     public void SelectPieceAt(int x, int y)
     {
-        if (_selectedPiece != null && AreNeighbors(_selectedPiece, _board[x, y]))
+        SelectPiece(_board[x, y]);
+    }
+
+    public void SelectPiece(BoardPiece boardPiece)
+    {
+        // TODO: add test for 2nd comparision
+        if (_selectedPiece != null && _selectedPiece != boardPiece && AreNeighbors(_selectedPiece, boardPiece))
         {
-            _swapCandidate = _board[x, y];
+            _swapCandidate = boardPiece;
         }
         else
         {
-            _selectedPiece = _board[x, y];
+            _selectedPiece = boardPiece;
         }
     }
 
@@ -177,6 +192,10 @@ public class Board
     {
         Swap(_selectedPiece, _swapCandidate);
         IsSwapping = !IsSwapping;
+        if (Swapped != null)
+        {
+            Swapped(this, new SwappedEventArgs(_selectedPiece, _swapCandidate));
+        }
     }
 
     private void Swap(BoardPiece piece1, BoardPiece piece2)
@@ -229,7 +248,7 @@ public class Board
         var typesList = new List<int>(types);
         var tempList = new List<int>(types);
 
-        int preMatchSize = _minMatchSize - 1;
+        int preMatchSize = MinMatchSize - 1;
 
         for (int y = 0; y < _board.GetLength(1); y++)
         {
@@ -411,5 +430,17 @@ public class Board
     {
         IsSwapping = false;
         _selectedPiece = _swapCandidate = null;
+    }
+}
+
+public class SwappedEventArgs
+{
+    public readonly BoardPiece SelectedPiece;
+    public readonly BoardPiece SwapCandidate;
+
+    public SwappedEventArgs(BoardPiece selectedPiece, BoardPiece swapCandidate)
+    {
+        SelectedPiece = selectedPiece;
+        SwapCandidate = swapCandidate;
     }
 }

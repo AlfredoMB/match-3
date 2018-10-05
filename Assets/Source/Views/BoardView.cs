@@ -1,33 +1,47 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 
 public class BoardView : MonoBehaviour
 {
-    public int Width = 8;
-    public int Height = 8;
-    public int MinMatchSize = 3;
-
     public PieceView[] PiecePrefabs;
-    public BoardReferenceView BoardReferenceView;
+    public Transform PositionReferences;
 
-    public Transform Transform;
+    public Transform PieceContainer;
 
     private Board _board;
 
-    private IEnumerator Start()
+    public void Initialize(Board board)
     {
-        _board = new Board(Width, Height, MinMatchSize);
-        _board.RandomFillUp(Random.Range(int.MinValue, int.MaxValue), 0, 1, 2, 3, 4);
+        _board = board;
+        StartCoroutine(SpawnBoard());
+    }
 
-        for (int y = 0; y < Height; y++)
+    private IEnumerator SpawnBoard()
+    {
+        for (int y = 0; y < _board.Height; y++)
         {
-            for (int x = 0; x < Width; x++)
+            for (int x = 0; x < _board.Width; x++)
             {
                 var boardPiece = _board.GetPieceAt(x, y);
-                var piece = Instantiate(PiecePrefabs[boardPiece.Type], Transform);
-                piece.SetReference(BoardReferenceView.GetReference(x, y, Width));
+                var piece = Instantiate(PiecePrefabs[boardPiece.Type], PieceContainer);
+                piece.Initialize(_board, this, boardPiece, GetReference(x, y));
                 yield return null;
             }
         }
+    }
+
+    public Transform GetReference(int x, int y)
+    {
+        if (x < 0 || x > _board.Width || y < 0 || y > _board.Height)
+        {
+            return null;
+        }
+        return PositionReferences.GetChild(x + y * _board.Width);
+    }
+
+    public Transform GetReference(BoardPiece boardPiece)
+    {
+        return GetReference(boardPiece.X, boardPiece.Y);
     }
 }

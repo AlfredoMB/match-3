@@ -74,10 +74,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ff65162cc08a9b4c88ff84845598a06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Transform: {fileID: 224968297651543780}
+  RectTransform: {fileID: 224968297651543780}
   Reference: {fileID: 0}
   Animator: {fileID: 95795188063795040}
   ShakeParameter: Shake
+  AlternativeParameter: Alternative
+  SwapSpeed: 0
   Gravity: -1
 --- !u!114 &114644928448071492
 MonoBehaviour:
