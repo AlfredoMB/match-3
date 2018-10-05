@@ -10,10 +10,12 @@ public class BoardView : MonoBehaviour
     public Transform PieceContainer;
 
     private Board _board;
+    private PieceView[,] _pieceViews;
 
     public void Initialize(Board board)
     {
         _board = board;
+        _pieceViews = new PieceView[_board.Width, _board.Height];
         StartCoroutine(SpawnBoard());
     }
 
@@ -25,23 +27,33 @@ public class BoardView : MonoBehaviour
             {
                 var boardPiece = _board.GetPieceAt(x, y);
                 var piece = Instantiate(PiecePrefabs[boardPiece.Type], PieceContainer);
-                piece.Initialize(_board, this, boardPiece, GetReference(x, y));
+                _pieceViews[x, y] = piece;
+                piece.Initialize(this, x, y);
                 yield return null;
             }
         }
     }
 
-    public Transform GetReference(int x, int y)
+    public bool IsOutOfBounds(int x, int y)
     {
-        if (x < 0 || x > _board.Width || y < 0 || y > _board.Height)
+        return x < 0 || x > _board.Width || y < 0 || y > _board.Height;
+    }
+
+    public RectTransform GetReference(int x, int y)
+    {
+        if (IsOutOfBounds(x, y))
         {
             return null;
         }
-        return PositionReferences.GetChild(x + y * _board.Width);
+        return PositionReferences.GetChild(x + y * _board.Width) as RectTransform;
     }
 
-    public Transform GetReference(BoardPiece boardPiece)
+    public PieceView GetPieceView(int x, int y)
     {
-        return GetReference(boardPiece.X, boardPiece.Y);
+        if (IsOutOfBounds(x, y))
+        {
+            return null;
+        }
+        return _pieceViews[x, y];
     }
 }
