@@ -8,9 +8,14 @@ public class Match3GameController : MonoBehaviour
     public int MinMatchSize = 3;
 
     public BoardView BoardView;
+    public ScoreView ScoreView;
+    public TimerView TimerView;
+    public GameOverView GameOverView;
 
     private Board _board;
     private Match3Game _game;
+    private GameTimer _gameTimer;
+    private ScoreCounter _score;
 
     private void Awake()
     {
@@ -23,9 +28,26 @@ public class Match3GameController : MonoBehaviour
         BoardView.SwapComplete += OnSwapComplete;
         BoardView.RemoveComplete += OnRemoveComplete;
         BoardView.MovingPiecesDownComplete += OnMovingPiecesDownComplete;
+
+        _gameTimer = new GameTimer();
+        _gameTimer.SetTime(60f);
+        TimerView.Initialize(_gameTimer);
+
+        _score = new ScoreCounter(_board);
+        ScoreView.Initialize(_score);
     }
 
-    private void OnDestroy()
+    private void Update()
+    {
+        _gameTimer.UpdateTimePassed(Time.deltaTime);
+        if (_gameTimer.RemainingTime <= 0)
+        {
+            GameOverView.Show();
+            enabled = false;
+        }
+    }
+
+    private void OnDisable()
     {
         if (BoardView == null)
         {
