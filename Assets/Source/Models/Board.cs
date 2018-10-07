@@ -111,7 +111,8 @@ public class Board
                     MovePieceTo(_board[x, y], x, y - emptySpaces);
                 }
             }
-            
+
+            int startingSpaceHeight = emptySpaces;
             while(emptySpaces > 0)
             {
                 var newPiece = GetNewBoardPiece(_random.Next(0, _pieceTypes.Length - 1));
@@ -120,7 +121,7 @@ public class Board
 
                 if (PieceSpawned != null)
                 {
-                    PieceSpawned(this, new PieceSpawnedEventArgs(newPiece));
+                    PieceSpawned(this, new PieceSpawnedEventArgs(newPiece, startingSpaceHeight - emptySpaces));
                 }
             }
         }
@@ -479,10 +480,12 @@ public class Board
 public class PieceSpawnedEventArgs
 {
     public readonly BoardPiece NewPiece;
+    public readonly int StartingHeight;
 
-    public PieceSpawnedEventArgs(BoardPiece newPiece)
+    public PieceSpawnedEventArgs(BoardPiece newPiece, int startingHeight)
     {
         NewPiece = newPiece;
+        StartingHeight = startingHeight;
     }
 }
 

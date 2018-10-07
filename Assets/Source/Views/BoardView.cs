@@ -19,6 +19,8 @@ public class BoardView : MonoBehaviour
     private int _movedPieces;
     private int _removedPieces;
 
+    public int Height { get { return _board.Height; } }
+
     public void Initialize(Board board)
     {
         _board = board;
@@ -56,18 +58,20 @@ public class BoardView : MonoBehaviour
             for (int x = 0; x < _board.Width; x++)
             {
                 var boardPiece = _board.GetPieceAt(x, y);
-                SpawnPiece(boardPiece);
+                SpawnPiece(boardPiece, y);
                 yield return null;
             }
         }
     }
 
-    private void SpawnPiece(BoardPiece boardPiece)
+    private void SpawnPiece(BoardPiece boardPiece, int startingHeight)
     {
         var piece = Instantiate(PieceViewPrefab, PieceContainer);
         piece.name = boardPiece.X + "-" + boardPiece.Y;
+
         _pieceViews[boardPiece.X, boardPiece.Y] = piece;
-        piece.Initialize(this, boardPiece);
+
+        piece.Initialize(this, boardPiece, startingHeight);
         piece.SwapComplete += OnSwapComplete;
         piece.RemoveComplete += OnPieceRemoveComplete;
         piece.FallComplete += OnPieceMovingDownComplete;
@@ -83,9 +87,9 @@ public class BoardView : MonoBehaviour
         return x < 0 || x > _board.Width || y < 0 || y > _board.Height;
     }
 
-    public RectTransform GetReference(int x, int y)
+    public RectTransform GetReference(int x, int y, bool limitedByBounds = true)
     {
-        if (IsOutOfBounds(x, y))
+        if (limitedByBounds && IsOutOfBounds(x, y))
         {
             return null;
         }
@@ -173,7 +177,7 @@ public class BoardView : MonoBehaviour
 
     private void OnPieceSpawned(object sender, PieceSpawnedEventArgs e)
     {
-        SpawnPiece(e.NewPiece);
+        SpawnPiece(e.NewPiece, e.StartingHeight);
     }
 
     private void OnPieceRemoveComplete(object sender, EventArgs e)

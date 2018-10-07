@@ -27,7 +27,7 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
     public int Y { get; private set; }
     public RectTransform Reference { get; private set; }
 
-    public void Initialize(BoardView boardView, BoardPiece boardPiece)
+    public void Initialize(BoardView boardView, BoardPiece boardPiece, int startingHeight)
     {
         _boardView = boardView;
         _boardPiece = boardPiece;
@@ -35,7 +35,7 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
         _boardPiece.MovedDown += OnMovedDown;
 
         SetReference(boardPiece.X, boardPiece.Y);
-        MyRectTransform.position = Reference.position + new Vector3(0, 20);
+        MyRectTransform.position = _boardView.GetReference(boardPiece.X, _boardView.Height + startingHeight, false).position;
 
         MyImage.sprite = PieceImages[boardPiece.Type];
 
