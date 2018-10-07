@@ -1,5 +1,10 @@
-﻿public class BoardPiece
+﻿using System;
+
+public class BoardPiece
 {
+    public event EventHandler Removed;
+    public event EventHandler MovedDown;
+
     public readonly int Type;
 
     public int X { get; private set; }
@@ -25,6 +30,18 @@
     public void RemoveFromBoard()
     {
         IsRemoved = true;
+        if (Removed != null)
+        {
+            Removed(this, new EventArgs());
+        }
+    }
+
+    public void MoveDown()
+    {
+        if (MovedDown != null)
+        {
+            MovedDown(this, new EventArgs());
+        }
     }
 
     public bool Matches(BoardPiece targetPieceType)

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public class Match3GameController : MonoBehaviour
 {
@@ -14,15 +15,18 @@ public class Match3GameController : MonoBehaviour
     private void Awake()
     {
         _board = new Board(Width, Height, MinMatchSize);
-        _board.RandomFillUp(Random.Range(int.MinValue, int.MaxValue), 0, 1, 2, 3, 4);
+        _board.RandomFillUp(UnityEngine.Random.Range(int.MinValue, int.MaxValue), 0, 1, 2, 3, 4);
 
         _game = new Match3Game(_board);
 
         BoardView.Initialize(_board);
+        BoardView.SwapComplete += OnSwapComplete;
     }
 
-    private void Update()
+    private void OnSwapComplete(object sender, EventArgs e)
     {
-        _game.Process();
+        _game.Process(); // to check
+        _game.Process(); // to swap back
+        _game.Process(); // swap back
     }
 }

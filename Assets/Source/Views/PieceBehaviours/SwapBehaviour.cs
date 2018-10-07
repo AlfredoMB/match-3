@@ -25,5 +25,6 @@ public class SwapBehaviour : PieceBehaviour
         
         _myRectTransform.position = _reference.position;
         enabled = false;
+        OnCompleted();
     }
 }

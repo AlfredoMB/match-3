@@ -37,6 +37,7 @@ public class FallBehaviour : PieceBehaviour
             _myAnimator.SetBool(_shakeParameterHash, true);
             _myAnimator.SetBool(_alternativeParameterHash, UnityEngine.Random.Range(0, 1) > 0);
             enabled = false;
+            OnCompleted();
         }
     }
 }

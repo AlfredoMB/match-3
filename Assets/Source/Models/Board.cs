@@ -5,8 +5,14 @@ using System.Text;
 public class Board
 {
     public delegate void SwappedEventHandler(object sender, SwappedEventArgs e);
+    public delegate void MatchesFoundEventHandler(object sender, MatchesFoundEventArgs e);
 
-    public event SwappedEventHandler Swapped;
+    public delegate void PieceSpawnedEventHandler(object sender, PieceSpawnedEventArgs e);
+    public event PieceSpawnedEventHandler PieceSpawned;
+
+    public event SwappedEventHandler SwappedBack;
+    public event MatchesFoundEventHandler MatchesFound;
+
 
     private readonly BoardPiece[,] _board;
 
@@ -70,7 +76,14 @@ public class Board
             {
                 MovePieceTo(_board[removed.X, j + 1], removed.X, j);
             }
-            _board[removed.X, length - 1] = GetNewBoardPiece();
+            var newPiece = GetNewBoardPiece();
+            SetPieceAt(newPiece, removed.X, length - 1);
+            SetMovedPiece(newPiece);
+
+            if (PieceSpawned != null)
+            {
+                PieceSpawned(this, new PieceSpawnedEventArgs(newPiece));
+            }
         }
 
         _removedList.Clear();
@@ -80,10 +93,12 @@ public class Board
     {
         SetPieceAt(boardPiece, x, y);
         SetMovedPieceAt(x, y);
+        boardPiece.MoveDown();
     }
 
     public void SetMovedPieceAt(int x, int y)
     {
+        UnityEngine.Debug.Log("SetMovedPieceAt");
         _movedList.Add(_board[x, y]);
     }
 
@@ -95,7 +110,8 @@ public class Board
 
     private BoardPiece GetNewBoardPiece()
     {
-        return new BoardPiece(int.MinValue);
+        var newPiece = new BoardPiece(int.MinValue);
+        return newPiece;
     }
 
     public Matches GetMatchesFromMovedPieces()
@@ -161,6 +177,11 @@ public class Board
             }
         }
 
+        if (_matches.Count > 0 && MatchesFound != null)
+        {
+            MatchesFound(this, new MatchesFoundEventArgs(_matches));
+        }
+
         return _matches;
     }
 
@@ -191,11 +212,14 @@ public class Board
     public void SwapCandidates()
     {
         Swap(_selectedPiece, _swapCandidate);
-        IsSwapping = !IsSwapping;
-        if (Swapped != null)
+        if (IsSwapping && SwappedBack != null)
         {
-            Swapped(this, new SwappedEventArgs(_selectedPiece, _swapCandidate));
+            SwappedBack(this, new SwappedEventArgs(_selectedPiece, _swapCandidate));
+
+            _selectedPiece = null;
+            _swapCandidate = null;
         }
+        IsSwapping = !IsSwapping;
     }
 
     private void Swap(BoardPiece piece1, BoardPiece piece2)
@@ -213,14 +237,6 @@ public class Board
     private void SetMovedPiece(BoardPiece piece)
     {
         SetMovedPieceAt(piece.X, piece.Y);
-    }
-
-    public void RemovePiecesFromMatch(Match match)
-    {
-        foreach(var piece in match)
-        {
-            RemovePieceAt(piece.X, piece.Y);
-        }
     }
 
     /// <summary>
@@ -296,7 +312,7 @@ public class Board
                 int randomValue = random.Next(tempList.Count);
                 var randomPiece = tempList[randomValue];
                 SetPieceAt(new BoardPiece(randomPiece), x, y);
-                SetMovedPieceAt(x, y);
+                //SetMovedPieceAt(x, y);
             }
         }
     }
@@ -417,7 +433,10 @@ public class Board
     {
         foreach (var match in currentMatches)
         {
-            RemovePiecesFromMatch(match);
+            foreach (var piece in match)
+            {
+                RemovePieceAt(piece.X, piece.Y);
+            }
         }
     }
 
@@ -430,6 +449,26 @@ public class Board
     {
         IsSwapping = false;
         _selectedPiece = _swapCandidate = null;
+    }
+}
+
+public class PieceSpawnedEventArgs
+{
+    public readonly BoardPiece NewPiece;
+
+    public PieceSpawnedEventArgs(BoardPiece newPiece)
+    {
+        NewPiece = newPiece;
+    }
+}
+
+public class MatchesFoundEventArgs
+{
+    public readonly Matches Matches;
+
+    public MatchesFoundEventArgs(Matches matches)
+    {
+        Matches = matches;
     }
 }
 

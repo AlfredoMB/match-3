@@ -23,6 +23,7 @@
 
     public void Process()
     {
+        UnityEngine.Debug.Log(_currentState);
         switch (_currentState)
         {
             case EState.WaitingToSwap:

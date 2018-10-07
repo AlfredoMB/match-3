@@ -40,6 +40,7 @@ GameObject:
   - component: {fileID: 114549145400722004}
   - component: {fileID: 114433378431793824}
   - component: {fileID: 114570741134390784}
+  - component: {fileID: 114768598817126620}
   m_Layer: 5
   m_Name: PieceView
   m_TagString: Untagged
@@ -93,11 +94,15 @@ MonoBehaviour:
   MyRectTransform: {fileID: 224968297651543780}
   MyAnimator: {fileID: 95795188063795040}
   MyImage: {fileID: 114644928448071492}
-  ShakeParameter: Shake
-  AlternativeParameter: Alternative
-  SwapSpeed: 0
+  PieceImages:
+  - {fileID: 21300000, guid: 8f98105a71f2f5546b6c76363bfe835b, type: 3}
+  - {fileID: 21300000, guid: 618619a4abbf9824297770ac3a705427, type: 3}
+  - {fileID: 21300000, guid: dae6cbb92a158d14bbe182bd3b31457d, type: 3}
+  - {fileID: 21300000, guid: 23ff7ff9e5f867b4f8d4f5b75d611981, type: 3}
+  - {fileID: 21300000, guid: 858163787df35664cbc3dfdea659fade, type: 3}
   FallBehaviour: {fileID: 114433378431793824}
   SwapBehaviour: {fileID: 114570741134390784}
+  RemoveBehaviour: {fileID: 114768598817126620}
 --- !u!114 &114570741134390784
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -137,6 +142,18 @@ MonoBehaviour:
   m_FillAmount: 1
   m_FillClockwise: 1
   m_FillOrigin: 0
+--- !u!114 &114768598817126620
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1524202158214728}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9af42062fcfdfc04ca50ac867ad4079e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  RemoveSpeed: 1
 --- !u!222 &222397678327322426
 CanvasRenderer:
   m_ObjectHideFlags: 1
