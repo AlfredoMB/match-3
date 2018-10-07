@@ -79,7 +79,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShakeParameter: Shake
   AlternativeParameter: Alternative
-  Gravity: -1
+  Gravity: 50
 --- !u!114 &114549145400722004
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -153,7 +153,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9af42062fcfdfc04ca50ac867ad4079e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  RemoveSpeed: 1
+  RemoveSpeed: 2
 --- !u!222 &222397678327322426
 CanvasRenderer:
   m_ObjectHideFlags: 1

@@ -8,6 +8,7 @@ public class FallBehaviour : PieceBehaviour
     public float Gravity;
 
     private float _currentSpeed;
+    private float _lastDistance;
 
     private int _shakeParameterHash;
     private int _alternativeParameterHash;
@@ -15,6 +16,7 @@ public class FallBehaviour : PieceBehaviour
     public override void Play()
     {
         _currentSpeed = 0;
+        _lastDistance = float.MaxValue;
         base.Play();
     }
 
@@ -29,15 +31,19 @@ public class FallBehaviour : PieceBehaviour
     private void Update()
     {
         _currentSpeed += Gravity * Time.deltaTime;
-        _myRectTransform.position = new Vector3(_myRectTransform.position.x, Mathf.Max(_myRectTransform.position.y + _currentSpeed, _reference.position.y));
+        _myRectTransform.position = _myRectTransform.position + (_reference.position - _myRectTransform.position).normalized * _currentSpeed * Time.deltaTime;
 
-        if (_myRectTransform.position.y <= _reference.position.y || Mathf.Approximately(_myRectTransform.position.y, _reference.position.y))
+        var distance = Vector2.Distance(_myRectTransform.position, _reference.position);
+        if (distance < _lastDistance)
         {
-            _myRectTransform.position = _reference.position;
-            _myAnimator.SetBool(_shakeParameterHash, true);
-            _myAnimator.SetBool(_alternativeParameterHash, UnityEngine.Random.Range(0, 1) > 0);
-            enabled = false;
-            OnCompleted();
+            _lastDistance = distance;
+            return;
         }
+
+        _myRectTransform.position = _reference.position;
+        _myAnimator.SetBool(_shakeParameterHash, true);
+        _myAnimator.SetBool(_alternativeParameterHash, Random.Range(0, 1) > 0);
+        enabled = false;
+        OnCompleted();
     }
 }

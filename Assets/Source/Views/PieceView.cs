@@ -7,6 +7,7 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
 {
     public event EventHandler FallComplete;
     public event EventHandler SwapComplete;
+    public event EventHandler RemoveComplete;
 
     public RectTransform MyRectTransform;
     public Animator MyAnimator;
@@ -37,8 +38,10 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
         MyRectTransform.position = Reference.position + new Vector3(0, 20);
 
         MyImage.sprite = PieceImages[boardPiece.Type];
+
         FallBehaviour.Initialize(this, OnFallComplete);
         SwapBehaviour.Initialize(this, OnSwapComplete);
+        RemoveBehaviour.Initialize(this, OnRemoveComplete);
 
         PlayFall();
     }
@@ -47,7 +50,7 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
     {
         if (FallComplete != null)
         {
-            FallComplete(this, new EventArgs());
+            FallComplete(this, EventArgs.Empty);
         }
     }
 
@@ -55,7 +58,15 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
     {
         if (SwapComplete != null)
         {
-            SwapComplete(this, new EventArgs());
+            SwapComplete(this, EventArgs.Empty);
+        }
+    }
+
+    private void OnRemoveComplete()
+    {
+        if (RemoveComplete != null)
+        {
+            RemoveComplete(this, EventArgs.Empty);
         }
     }
 
@@ -75,6 +86,7 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
 
     private void OnMovedDown(object sender, EventArgs e)
     {
+        SetReference(_boardPiece.X, _boardPiece.Y);
         FallBehaviour.Play();
     }
 
@@ -82,6 +94,7 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
     {
         X = x;
         Y = y;
+        _boardView.SetView(this, x, y);
         Reference = _boardView.GetReference(x, y);
     }
 

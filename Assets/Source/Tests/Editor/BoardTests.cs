@@ -10,7 +10,7 @@ public class BoardTests
     [SetUp]
     public void SetUp()
     {
-        _board = new Board(_width, _height, _minMatchSize);
+        _board = new Board(_width, _height, _minMatchSize, new[] { 0, 1, 2 }, 0);
         _board.Fill(new BoardPiece(int.MinValue)); // TODO: uncouple this invalid value from int
                                                    // TODO: check sizes to make sure it builds what we set
     }

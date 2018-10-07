@@ -7,7 +7,7 @@ public class BoardInitializationTests : BoardTests
     {
         Assert.NotNull(_board.GetPieceAt(0, 0));
     }
-
+    /*
     [Test]
     public void RandomFillUpBoardWithoutMatches()
     {
@@ -34,5 +34,5 @@ public class BoardInitializationTests : BoardTests
             _board.ShufflePieces(i + 1);
             StringAssert.AreNotEqualIgnoringCase(serializedBoard, _board.ToString());
         }
-    }
+    }*/
 }

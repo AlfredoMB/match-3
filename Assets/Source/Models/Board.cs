@@ -24,10 +24,11 @@ public class Board
 
     private BoardPiece _selectedPiece;
     private BoardPiece _swapCandidate;
-
     public readonly int Width;
     public readonly int Height;
     public readonly int MinMatchSize;
+    private readonly int[] _pieceTypes;
+    private readonly Random _random;
 
     public bool IsReadyToSwap { get { return (_selectedPiece != null && _swapCandidate != null); } }
     public bool IsSwapping { get; private set; }
@@ -35,13 +36,33 @@ public class Board
     public bool ThereAreRemovedPieces { get { return _removedList.Count > 0; } }
     public bool ThereAreMovedPieces { get { return _movedList.Count > 0; } }
     public bool IsReadyForInput { get { return !IsSwapping && !ThereAreRemovedPieces && !ThereAreMovedPieces && !ThereAreMatches; } }
+    
+    public int MovedPiecesCount { get { return _movedList.Count; } }
+    public int RemovedPiecesCount { get { return _removedList.Count; } }
 
-    public Board(int width, int height, int minMatchSize)
+    public Board(int width, int height, int minMatchSize, int[] pieceTypes, int randomSeed)
     {
+        if (pieceTypes.Length < 3)
+        {
+            throw new ArgumentOutOfRangeException("pieceTypes", "Board requires at least 3 types of pieces to avoid the L case.");
+        }
+
+        // check unique
+        var uniqueCheckSet = new HashSet<int>();
+        foreach (var type in pieceTypes)
+        {
+            if (!uniqueCheckSet.Add(type))
+            {
+                throw new ArgumentException("All types should be unique.", "pieceTypes");
+            }
+        }
+
         Width = width;
         Height = height;
         _board = new BoardPiece[width, height];
         MinMatchSize = minMatchSize;
+        _pieceTypes = pieceTypes;
+        _random = new Random(randomSeed);
     }
 
     public void Fill(params BoardPiece[] pieces)
@@ -62,6 +83,11 @@ public class Board
 
     public void RemovePieceAt(int x, int y)
     {
+        UnityEngine.Debug.Log("RemovePieceAt " + x + ", " + y); 
+        if (_board[x, y] == null)
+        {
+            return;
+        }
         _board[x, y].RemoveFromBoard();
         _removedList.Add(_board[x, y]);
         _board[x, y] = null;
@@ -69,23 +95,35 @@ public class Board
 
     public void MovePiecesDown()
     {
-        foreach(var removed in _removedList)
+        int emptySpaces = 0;
+        for (int x = 0; x < _board.GetLength(0); x++)
         {
-            int length = _board.GetLength(1);
-            for (int j = removed.Y; j < length - 1; j++)
+            emptySpaces = 0;
+            for (int y = 0; y < _board.GetLength(1); y++)
             {
-                MovePieceTo(_board[removed.X, j + 1], removed.X, j);
+                if (_board[x, y] == null)
+                {
+                    emptySpaces++;
+                    continue;
+                }
+                if (emptySpaces > 0)
+                {
+                    MovePieceTo(_board[x, y], x, y - emptySpaces);
+                }
             }
-            var newPiece = GetNewBoardPiece();
-            SetPieceAt(newPiece, removed.X, length - 1);
-            SetMovedPiece(newPiece);
-
-            if (PieceSpawned != null)
+            
+            while(emptySpaces > 0)
             {
-                PieceSpawned(this, new PieceSpawnedEventArgs(newPiece));
+                var newPiece = GetNewBoardPiece(_random.Next(0, _pieceTypes.Length - 1));
+                SetPieceAt(newPiece, x, Height - emptySpaces--);
+                SetMovedPiece(newPiece);
+
+                if (PieceSpawned != null)
+                {
+                    PieceSpawned(this, new PieceSpawnedEventArgs(newPiece));
+                }
             }
         }
-
         _removedList.Clear();
     }
 
@@ -98,19 +136,19 @@ public class Board
 
     public void SetMovedPieceAt(int x, int y)
     {
-        UnityEngine.Debug.Log("SetMovedPieceAt");
         _movedList.Add(_board[x, y]);
     }
 
     public void SetPieceAt(BoardPiece piece, int x, int y)
     {
+        UnityEngine.Debug.Log("SetPieceAt " + x + ", " + y + ": " + piece);
         piece.SetBoardPosition(x, y);
         _board[x, y] = piece;
     }
 
-    private BoardPiece GetNewBoardPiece()
+    private BoardPiece GetNewBoardPiece(int type)
     {
-        var newPiece = new BoardPiece(int.MinValue);
+        var newPiece = new BoardPiece(type);
         return newPiece;
     }
 
@@ -243,26 +281,9 @@ public class Board
     /// Fills the board with random pieces with types from types.
     /// </summary>
     /// <param name="types">Types of pieces. Requires at least 3 types to avoid the L case.</param>
-    public void RandomFillUp(int seed, params int[] types)
+    public void RandomFillUp()
     {
-        if (types.Length < 3)
-        {
-            throw new ArgumentOutOfRangeException("types", "RandomFillUp requires at least 3 types of pieces to avoid the L case.");
-        }
-
-        // check unique
-        var uniqueCheckSet = new HashSet<int>();
-        foreach(var type in types)
-        {
-            if (!uniqueCheckSet.Add(type))
-            {
-                throw new ArgumentException("All types should be unique.", "types");
-            }
-        }
-
-        var random = new Random(seed);
-        var typesList = new List<int>(types);
-        var tempList = new List<int>(types);
+        var tempList = new List<int>(_pieceTypes);
 
         int preMatchSize = MinMatchSize - 1;
 
@@ -271,7 +292,7 @@ public class Board
             for (int x = 0; x < _board.GetLength(0); x++)
             {
                 tempList.Clear();
-                tempList.AddRange(typesList);
+                tempList.AddRange(_pieceTypes);
 
                 // check left
                 if (x >= preMatchSize)
@@ -309,7 +330,7 @@ public class Board
                     }
                 }
 
-                int randomValue = random.Next(tempList.Count);
+                int randomValue = _random.Next(0, tempList.Count - 1);
                 var randomPiece = tempList[randomValue];
                 SetPieceAt(new BoardPiece(randomPiece), x, y);
                 //SetMovedPieceAt(x, y);
@@ -438,6 +459,8 @@ public class Board
                 RemovePieceAt(piece.X, piece.Y);
             }
         }
+        _matches.Clear();
+        ConfirmMovedPieces();
     }
 
     public void ConfirmMovedPieces()
@@ -447,6 +470,7 @@ public class Board
 
     public void ConfirmSwappedPieces()
     {
+        ConfirmMovedPieces();
         IsSwapping = false;
         _selectedPiece = _swapCandidate = null;
     }

@@ -27,6 +27,7 @@
         switch (_currentState)
         {
             case EState.WaitingToSwap:
+                UnityEngine.Debug.Log("----------------------------------------------------------------");
                 if (!_board.IsReadyToSwap)
                 {
                     return;
@@ -67,6 +68,7 @@
                 break;
 
             case EState.RemovingMatchPieces:
+                UnityEngine.Debug.Log(_currentMatches);
                 _board.RemovePiecesFromMatches(_currentMatches);
                 _currentState = EState.MovingDownPieces;
                 break;
