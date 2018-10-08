@@ -4,56 +4,25 @@ using System.Text;
 
 public class Board
 {
-    public delegate void SwappedEventHandler(object sender, SwappedEventArgs e);
-    public delegate void MatchesFoundEventHandler(object sender, MatchesFoundEventArgs e);
     public delegate void MatchResolvedEventHandler(object sender, MatchResolvedEventArgs e);
+    public event MatchResolvedEventHandler MatchResolved;
 
     public delegate void PieceSpawnedEventHandler(object sender, PieceSpawnedEventArgs e);
     public event PieceSpawnedEventHandler PieceSpawned;
-
-    public event SwappedEventHandler SwappedBack;
-    public event MatchesFoundEventHandler MatchesFound;
-    public event MatchResolvedEventHandler MatchResolved;
-    public event EventHandler Reshuffled;
+    
+    //public event EventHandler Reshuffled;
 
     private readonly BoardPiece[,] _board;
 
-    private List<BoardPiece> _movedList = new List<BoardPiece>();
-    private List<BoardPiece> _removedList = new List<BoardPiece>();
-
-    private Matches _matches = new Matches();
-    private PossibleMatches _possibleMatches = new PossibleMatches();
-
     private BoardPiece _selectedPiece;
     private BoardPiece _swapCandidate;
+
     public readonly int Width;
     public readonly int Height;
     public readonly int MinMatchSize;
+
     private readonly List<int> _pieceTypes;
     private readonly Random _random;
-
-    public bool IsReadyToSwap { get { return (_selectedPiece != null && _swapCandidate != null); } }
-    public bool IsSwapping { get; private set; }
-    public bool ThereAreMatches { get { return _matches.Count > 0; } }
-    public bool ThereAreRemovedPieces { get { return _removedList.Count > 0; } }
-    public bool ThereAreMovedPieces { get { return _movedList.Count > 0; } }
-    public bool IsReadyForInput { get { return !IsSwapping && !ThereAreRemovedPieces && !ThereAreMovedPieces && !ThereAreMatches; } }
-    
-    public int MovedPiecesCount { get { return _movedList.Count; } }
-    public int RemovedPiecesCount { get { return _removedList.Count; } }
-
-    public void ResolveMatch(Match match)
-    {
-        foreach (var piece in match)
-        {
-            RemovePieceAt(piece.X, piece.Y);
-        }
-
-        if (MatchResolved != null)
-        {
-            MatchResolved(this, new MatchResolvedEventArgs(match));
-        }
-    }
 
     public Board(int width, int height, int minMatchSize, HashSet<int> pieceTypes, int randomSeed)
     {
@@ -93,8 +62,7 @@ public class Board
         {
             return;
         }
-        _board[x, y].RemoveFromBoard();
-        _removedList.Add(_board[x, y]);
+        _board[x, y].EnterRemovedState();
         _board[x, y] = null;
     }
 
@@ -122,7 +90,6 @@ public class Board
             {
                 var newPiece = GetNewBoardPiece(_random.Next(0, _pieceTypes.Count));
                 SetPieceAt(newPiece, x, Height - emptySpaces--);
-                SetMovedPiece(newPiece);
 
                 if (PieceSpawned != null)
                 {
@@ -130,7 +97,19 @@ public class Board
                 }
             }
         }
-        _removedList.Clear();
+    }
+
+    public void ResolveMatch(Match match)
+    {
+        foreach (var piece in match)
+        {
+            RemovePieceAt(piece.X, piece.Y);
+        }
+
+        if (MatchResolved != null)
+        {
+            MatchResolved(this, new MatchResolvedEventArgs(match));
+        }
     }
 
     public void ResolveMatches(Matches matches)
@@ -160,13 +139,7 @@ public class Board
     private void MovePieceTo(BoardPiece boardPiece, int x, int y)
     {
         SetPieceAt(boardPiece, x, y);
-        SetMovedPieceAt(x, y);
-        boardPiece.Fall();
-    }
-
-    public void SetMovedPieceAt(int x, int y)
-    {
-        _movedList.Add(_board[x, y]);
+        boardPiece.EnterFallingState();
     }
 
     public void SetPieceAt(BoardPiece piece, int x, int y)
@@ -180,22 +153,6 @@ public class Board
     {
         var newPiece = new BoardPiece(type);
         return newPiece;
-    }
-
-    public Matches GetMatchesFromMovedPieces()
-    {
-        _matches.Clear();
-        foreach (var movedPiece in _movedList)
-        {
-            GetMatchFor(movedPiece);            
-        }
-
-        if (_matches.Count > 0 && MatchesFound != null)
-        {
-            MatchesFound(this, new MatchesFoundEventArgs(_matches));
-        }
-
-        return _matches;
     }
 
     public Match GetMatchFor(BoardPiece movedPiece)
@@ -285,17 +242,18 @@ public class Board
             || Math.Abs(piece1.Y - piece2.Y) == 1;
     }
 
-    public void SwapCandidates()
+    public bool SwapCandidates()
     {
-        Swap(_selectedPiece, _swapCandidate);
-        if (IsSwapping && SwappedBack != null)
+        /*
+        if (_selectedPiece == null || _swapCandidate == null
+            || _selectedPiece.CurrentState != BoardPiece.EState.ReadyForMatch
+            || _swapCandidate.CurrentState != BoardPiece.EState.ReadyForMatch)
         {
-            SwappedBack(this, new SwappedEventArgs(_selectedPiece, _swapCandidate));
+            return false;
+        }*/
 
-            _selectedPiece = null;
-            _swapCandidate = null;
-        }
-        IsSwapping = !IsSwapping;
+        Swap(_selectedPiece, _swapCandidate);
+        return true;
     }
 
     private void Swap(BoardPiece piece1, BoardPiece piece2)
@@ -305,14 +263,6 @@ public class Board
 
         SetPieceAt(piece1, piece2.X, piece2.Y);
         SetPieceAt(piece2, tempX, tempY);
-
-        SetMovedPiece(piece1);
-        SetMovedPiece(piece2);
-    }
-
-    private void SetMovedPiece(BoardPiece piece)
-    {
-        SetMovedPieceAt(piece.X, piece.Y);
     }
 
     /// <summary>
@@ -371,9 +321,15 @@ public class Board
                 int randomValue = _random.Next(0, tempList.Count);
                 var randomPiece = tempList[randomValue];
                 SetPieceAt(new BoardPiece(randomPiece), x, y);
-                //SetMovedPieceAt(x, y);
             }
         }
+    }
+
+    public void ConfirmSwappedPieces()
+    {
+        UnityEngine.Debug.Log(_selectedPiece);
+        UnityEngine.Debug.Log(_swapCandidate);
+        _selectedPiece = _swapCandidate = null;
     }
 
     public override string ToString()
@@ -391,6 +347,7 @@ public class Board
         return sb.ToString();
     }
 
+ /*
     public void ShufflePieces(int seed)
     {
         var random = new Random(seed);
@@ -407,45 +364,9 @@ public class Board
             }
         }
     }
+    
 
-    public bool AreThereAnyPossibleMatchesLeft()
-    {        
-        for (int y = 0; y < _board.GetLength(1); y++)
-        {
-            for (int x = 0; x < _board.GetLength(0); x++)
-            {
-                // swap in left and down (if possible) and check each one
-                // swapping up and right would generate same match tests, so we avoid it.
-
-                // left
-                if (x > 0)
-                {
-                    Swap(_board[x, y], _board[x - 1, y]);
-                    if (GetMatchesFromMovedPieces().Count > 0)
-                    {
-                        return true;
-                    }
-                    Swap(_board[x, y], _board[x - 1, y]);
-                    _movedList.Clear();
-                }
-
-                // down
-                if (y > 0)
-                {
-                    Swap(_board[x, y], _board[x, y - 1]);
-                    if (GetMatchesFromMovedPieces().Count > 0)
-                    {
-                        return true;
-                    }
-                    Swap(_board[x, y], _board[x, y - 1]);
-                    _movedList.Clear();
-                }
-            }
-        }
-
-        return false;
-    }
-
+   
     public void Reshuffle()
     {
         do
@@ -464,74 +385,7 @@ public class Board
         {
             Reshuffled(this, EventArgs.Empty);
         }
-    }
-
-    public PossibleMatches GetAllPossibleMatchesLeft()
-    {
-        _possibleMatches.Clear();
-
-        for (int y = 0; y < _board.GetLength(1); y++)
-        {
-            for (int x = 0; x < _board.GetLength(0); x++)
-            {
-                // swap in left and down (if possible) and check each one
-                // swapping up and right would generate same match tests, so we avoid it.
-
-                // left
-                if (x > 0)
-                {
-                    Swap(_board[x, y], _board[x - 1, y]);
-                    var matches = GetMatchesFromMovedPieces();
-                    foreach (var match in matches)
-                    {
-                        _possibleMatches.Add(new PossibleMatch(match, _board[x, y], _board[x - 1, y]));
-                    }
-                    Swap(_board[x, y], _board[x - 1, y]);
-                    _movedList.Clear();
-                }
-
-                // down
-                if (y > 0)
-                {
-                    Swap(_board[x, y], _board[x, y - 1]);
-                    var matches = GetMatchesFromMovedPieces();
-                    foreach(var match in matches)
-                    {
-                        _possibleMatches.Add(new PossibleMatch(match, _board[x, y], _board[x, y - 1]));
-                    }
-                    Swap(_board[x, y], _board[x, y - 1]);
-                    _movedList.Clear();
-                }
-            }
-        }
-
-        return _possibleMatches;
-    }
-
-    public void RemovePiecesFromMatches(Matches currentMatches)
-    {
-        foreach (var match in currentMatches)
-        {
-            foreach (var piece in match)
-            {
-                RemovePieceAt(piece.X, piece.Y);
-            }
-        }
-        _matches.Clear();
-        ConfirmMovedPieces();
-    }
-
-    public void ConfirmMovedPieces()
-    {
-        _movedList.Clear();
-    }
-
-    public void ConfirmSwappedPieces()
-    {
-        ConfirmMovedPieces();
-        IsSwapping = false;
-        _selectedPiece = _swapCandidate = null;
-    }
+    }*/
 }
 
 public class MatchResolvedEventArgs
@@ -553,27 +407,5 @@ public class PieceSpawnedEventArgs
     {
         NewPiece = newPiece;
         StartingHeight = startingHeight;
-    }
-}
-
-public class MatchesFoundEventArgs
-{
-    public readonly Matches Matches;
-
-    public MatchesFoundEventArgs(Matches matches)
-    {
-        Matches = matches;
-    }
-}
-
-public class SwappedEventArgs
-{
-    public readonly BoardPiece SelectedPiece;
-    public readonly BoardPiece SwapCandidate;
-
-    public SwappedEventArgs(BoardPiece selectedPiece, BoardPiece swapCandidate)
-    {
-        SelectedPiece = selectedPiece;
-        SwapCandidate = swapCandidate;
     }
 }

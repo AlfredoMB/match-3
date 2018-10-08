@@ -1,7 +1,7 @@
 ﻿using NUnit.Framework;
 
     public class HorizontalRecognitionTests : BoardTests
-    {
+    {/*
         [Test]
         public void RecognizeHorizontal3PieceStartingOnLeftAsMatch()
         {
@@ -129,7 +129,6 @@
                 Assert.That(match.Contains(matchPiece) || match.Contains(matchPiece2));
             }
         }
-    /*
         [Test]
         public void SwapHorizontalNeighborPieces()
         {
@@ -172,7 +171,7 @@
             _board.SelectPieceAt(targetX, y);
 
             Assert.IsFalse(_board.IsReadyToSwap);
-        }*/
+        }
     }
 
     public class VerticalRecognitionTests : BoardTests
@@ -303,7 +302,7 @@
                 Assert.That(match.Contains(matchPiece) || match.Contains(matchPiece2));
             }
         }
-    /*
+
         [Test]
         public void SwapVerticalNeighborPieces()
         {
@@ -346,7 +345,7 @@
             _board.SelectPieceAt(x, targetY);
 
             Assert.IsFalse(_board.IsReadyToSwap);
-        }*/
+        }
     }
 
 public class PossibleMatchesTests : BoardTests
@@ -407,5 +406,5 @@ public class PossibleMatchesTests : BoardTests
         _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 4, 0);
 
         CollectionAssert.IsEmpty(_board.GetAllPossibleMatchesLeft());
-    }
+    }*/
 }

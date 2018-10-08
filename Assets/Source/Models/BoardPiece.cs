@@ -16,7 +16,8 @@ public class BoardPiece
     {
         ReadyForMatch,
         Falling,
-        Removed
+        Removed,
+        UnderSwap
     }
 
     public BoardPiece(int type)
@@ -32,12 +33,17 @@ public class BoardPiece
         Y = y;
     }
 
-    public void ReadyForMatch()
+    public void EnterReadyForMatchState()
     {
         CurrentState = EState.ReadyForMatch;
     }
 
-    public void RemoveFromBoard()
+    public void EnterSwapState()
+    {
+        CurrentState = EState.UnderSwap;
+    }
+
+    public void EnterRemovedState()
     {
         CurrentState = EState.Removed;
         if (Removed != null)
@@ -46,7 +52,7 @@ public class BoardPiece
         }
     }
 
-    public void Fall()
+    public void EnterFallingState()
     {
         CurrentState = EState.Falling;
         if (Fell != null)

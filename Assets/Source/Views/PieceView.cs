@@ -21,7 +21,8 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
     private Board _board;
     
     private bool _isBeingDragged;
-    private PieceView _swapTarget;
+    private PieceView _swapTargetView;
+    private bool IsSwappingBack;
 
     public BoardPiece BoardPiece { get; private set; }
 
@@ -72,22 +73,23 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
             return;
         }
 
-        _board.SelectPiece(BoardPiece);
+        BoardPiece.EnterSwapState();
         _isBeingDragged = true;
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (BoardPiece.CurrentState != BoardPiece.EState.UnderSwap)
+        {
+            return;
+        }
+
+        BoardPiece.EnterReadyForMatchState();
         _isBeingDragged = false;
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (BoardPiece.CurrentState != BoardPiece.EState.ReadyForMatch)
-        {
-            return;
-        }
-
         if (!_isBeingDragged)
         {
             return;
@@ -123,17 +125,23 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
         int neighborY = Y + dy;
         if (_board.IsOutOfBounds(neighborX, neighborY))
         {
+            BoardPiece.EnterReadyForMatchState();
             return;
         }
 
         var neighbor = _board.GetPieceAt(neighborX, neighborY);
-        if (neighbor.CurrentState != BoardPiece.EState.ReadyForMatch)
+        if (neighbor == null || neighbor.CurrentState != BoardPiece.EState.ReadyForMatch)
         {
+            BoardPiece.EnterReadyForMatchState();
             return;
         }
-        _board.SelectPiece(neighbor);
 
-        _swapTarget = _boardView.GetPieceView(neighbor);
+        _swapTargetView = _boardView.GetPieceView(neighbor);
+        if(_swapTargetView == null)
+        {
+            Debug.LogError(neighbor);
+            return;
+        }
 
         SwapWithTarget();
     }
@@ -142,40 +150,37 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
     {
         var myReference = Reference;
 
-        Reference = _swapTarget.Reference;
-        _swapTarget.Reference = myReference;
+        Reference = _swapTargetView.Reference;
+        _swapTargetView.Reference = myReference;
 
-        _swapTarget.PlaySwap();
+        _swapTargetView.PlaySwap();
         PlaySwap();
     }
     
     public void PlaySwap()
     {
+        BoardPiece.EnterSwapState();
         SwapBehaviour.Play();
-    }
-
-    private void OnFellCompleted()
-    {
-        BoardPiece.ReadyForMatch();
-        if (FellCompleted != null)
-        {
-            FellCompleted(this, EventArgs.Empty);
-        }
-
-        var match = _board.GetMatchFor(BoardPiece);
-        if (match != null)
-        {
-            _board.ResolveMatch(match);
-        }
     }
 
     private void OnSwapCompleted()
     {
-        BoardPiece.ReadyForMatch();
-        if (_swapTarget == null)
+        if (IsSwappingBack)
+        {
+            IsSwappingBack = false;
+            BoardPiece.EnterReadyForMatchState();
+            return;
+        }
+
+        if (_swapTargetView == null)
         {
             return;
         }
+        BoardPiece.EnterReadyForMatchState();
+        _swapTargetView.BoardPiece.EnterReadyForMatchState();
+
+        _board.SelectPiece(BoardPiece);
+        _board.SelectPiece(_swapTargetView.BoardPiece);
 
         _board.SwapCandidates();
         var matches = _board.GetMatchesForCandidates();
@@ -186,8 +191,11 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
         }
         else
         {
+            _board.SwapCandidates();
             SwapWithTarget();
-            _swapTarget = null;
+            _board.ConfirmSwappedPieces();
+            _swapTargetView.IsSwappingBack = IsSwappingBack = true;
+            _swapTargetView = null;
         }
     }
 
@@ -204,5 +212,20 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
     private void OnFell(object sender, EventArgs e)
     {
         PlayFall();
+    }
+
+    private void OnFellCompleted()
+    {
+        BoardPiece.EnterReadyForMatchState();
+        if (FellCompleted != null)
+        {
+            FellCompleted(this, EventArgs.Empty);
+        }
+
+        var match = _board.GetMatchFor(BoardPiece);
+        if (match != null)
+        {
+            _board.ResolveMatch(match);
+        }
     }
 }
