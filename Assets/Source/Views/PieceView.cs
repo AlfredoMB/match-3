@@ -21,13 +21,8 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
     private Board _board;
     
     private bool _isBeingDragged;
-    private PieceView _swapTargetView;
-    private bool IsSwappingBack;
 
     public BoardPiece BoardPiece { get; private set; }
-
-    public int X { get { return BoardPiece.X; } }
-    public int Y { get { return BoardPiece.Y; } }
 
     public RectTransform Reference { get; private set; }
 
@@ -39,6 +34,7 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
 
         BoardPiece.Removed += OnRemoved;
         BoardPiece.Fell += OnFell;
+        BoardPiece.Swapped += OnSwapped;
 
         MyRectTransform.position = _boardView.GetReference(boardPiece.X, _board.Height + startingHeight, false).position;
 
@@ -57,6 +53,7 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
         {
             BoardPiece.Removed -= OnRemoved;
             BoardPiece.Fell -= OnFell;
+            BoardPiece.Swapped -= OnSwapped;
         }
     }
 
@@ -73,18 +70,18 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
             return;
         }
 
-        BoardPiece.EnterSwapState();
+        _board.SelectPiece(BoardPiece);
         _isBeingDragged = true;
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (BoardPiece.CurrentState != BoardPiece.EState.UnderSwap)
+        BoardPiece.EnterReadyForMatchState();
+        if (_board.IsReadyToSwap())
         {
-            return;
+            _board.SwapCandidates();
         }
 
-        BoardPiece.EnterReadyForMatchState();
         _isBeingDragged = false;
     }
 
@@ -121,8 +118,8 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
 
     public void SwapWithNeighbor(int dx, int dy)
     {
-        int neighborX = X + dx;
-        int neighborY = Y + dy;
+        int neighborX = BoardPiece.X + dx;
+        int neighborY = BoardPiece.Y + dy;
         if (_board.IsOutOfBounds(neighborX, neighborY))
         {
             BoardPiece.EnterReadyForMatchState();
@@ -136,66 +133,29 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
             return;
         }
 
-        _swapTargetView = _boardView.GetPieceView(neighbor);
-        if(_swapTargetView == null)
+        _board.SelectPiece(neighbor);
+        if (_board.IsReadyToSwap())
         {
-            Debug.LogError(neighbor);
-            return;
+            _board.SwapCandidates();
         }
-
-        SwapWithTarget();
     }
 
-    private void SwapWithTarget()
+    private void OnSwapped(object sender, EventArgs e)
     {
-        var myReference = Reference;
-
-        Reference = _swapTargetView.Reference;
-        _swapTargetView.Reference = myReference;
-
-        _swapTargetView.PlaySwap();
-        PlaySwap();
-    }
-    
-    public void PlaySwap()
-    {
-        BoardPiece.EnterSwapState();
+        Reference = _boardView.GetReference(BoardPiece.X, BoardPiece.Y);
         SwapBehaviour.Play();
     }
 
     private void OnSwapCompleted()
     {
-        if (IsSwappingBack)
-        {
-            IsSwappingBack = false;
-            BoardPiece.EnterReadyForMatchState();
-            return;
-        }
-
-        if (_swapTargetView == null)
-        {
-            return;
-        }
         BoardPiece.EnterReadyForMatchState();
-        _swapTargetView.BoardPiece.EnterReadyForMatchState();
-
-        _board.SelectPiece(BoardPiece);
-        _board.SelectPiece(_swapTargetView.BoardPiece);
-
-        _board.SwapCandidates();
-        var matches = _board.GetMatchesForCandidates();
-        if (matches != null)
+        if (_board.IsReadyToSwap())
         {
+            if (!TryToMatchSwap())
+            {                
+                _board.SwapCandidates();
+            }
             _board.ConfirmSwappedPieces();
-            _board.ResolveMatches(matches);
-        }
-        else
-        {
-            _board.SwapCandidates();
-            SwapWithTarget();
-            _board.ConfirmSwappedPieces();
-            _swapTargetView.IsSwappingBack = IsSwappingBack = true;
-            _swapTargetView = null;
         }
     }
 
@@ -222,10 +182,28 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
             FellCompleted(this, EventArgs.Empty);
         }
 
+        TryToMatch();
+    }
+
+    private bool TryToMatch()
+    {
         var match = _board.GetMatchFor(BoardPiece);
         if (match != null)
         {
             _board.ResolveMatch(match);
+            return true;
         }
+        return false;
+    }
+
+    private bool TryToMatchSwap()
+    {
+        var matches = _board.GetMatchesForCandidates();
+        if (matches != null)
+        {
+            _board.ResolveMatches(matches);
+            return true;
+        }
+        return false;
     }
 }

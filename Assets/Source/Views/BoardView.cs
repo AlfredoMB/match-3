@@ -20,7 +20,6 @@ public class BoardView : MonoBehaviour
     {
         _board = board;;
         _board.PieceSpawned += OnPieceSpawned;
-        //_board.Reshuffled += OnReshuffled;
         StartCoroutine(SpawnBoard());
     }
 
@@ -29,7 +28,6 @@ public class BoardView : MonoBehaviour
         if (_board != null)
         {
             _board.PieceSpawned -= OnPieceSpawned;
-            //_board.Reshuffled -= OnReshuffled;
         }
 
         foreach (var pieceView in _pieceViews)
@@ -62,7 +60,7 @@ public class BoardView : MonoBehaviour
         _pieceViews.Add(pieceView);
 
         pieceView.Initialize(this, _board, boardPiece, startingHeight);
-        pieceView.FellCompleted -= OnFellCompleted;
+        pieceView.FellCompleted += OnFellCompleted;
     }
 
     private void OnFellCompleted(object sender, EventArgs e)
@@ -92,13 +90,8 @@ public class BoardView : MonoBehaviour
         return _pieceViews.Find(pieceView => pieceView.BoardPiece == boardPiece);
     }
 
-    /*
-    private void OnReshuffled(object sender, EventArgs e)
+    private void Update()
     {
-        foreach(var view in _pieceViews)
-        {
-            view.Value.SetReference(view.Key);
-            view.Value.PlaySwap();
-        }
-    }*/
+        _board.MovePiecesDown();
+    }
 }

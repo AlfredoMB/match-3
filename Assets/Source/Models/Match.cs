@@ -43,7 +43,6 @@ public class Match : HashSet<BoardPiece>
 
     public override int GetHashCode()
     {
-        // TODO: evaluate this
         unchecked
         {
             int hash = 17;

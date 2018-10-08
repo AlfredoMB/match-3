@@ -9,8 +9,6 @@ public class Board
 
     public delegate void PieceSpawnedEventHandler(object sender, PieceSpawnedEventArgs e);
     public event PieceSpawnedEventHandler PieceSpawned;
-    
-    //public event EventHandler Reshuffled;
 
     private readonly BoardPiece[,] _board;
 
@@ -57,7 +55,6 @@ public class Board
 
     public void RemovePieceAt(int x, int y)
     {
-        UnityEngine.Debug.Log("RemovePieceAt " + x + ", " + y); 
         if (_board[x, y] == null)
         {
             return;
@@ -86,7 +83,7 @@ public class Board
             }
 
             int startingSpaceHeight = emptySpaces;
-            while(emptySpaces > 0)
+            while (emptySpaces > 0)
             {
                 var newPiece = GetNewBoardPiece(_random.Next(0, _pieceTypes.Count));
                 SetPieceAt(newPiece, x, Height - emptySpaces--);
@@ -144,13 +141,13 @@ public class Board
 
     public void SetPieceAt(BoardPiece piece, int x, int y)
     {
-        UnityEngine.Debug.Log("SetPieceAt " + x + ", " + y + ": " + piece);
         piece.SetBoardPosition(x, y);
         _board[x, y] = piece;
     }
 
     private BoardPiece GetNewBoardPiece(int type)
     {
+        // TODO: add pool
         var newPiece = new BoardPiece(type);
         return newPiece;
     }
@@ -224,8 +221,6 @@ public class Board
 
     public void SelectPiece(BoardPiece boardPiece)
     {
-        // TODO: add test for 2nd comparision
-        // TODO: evaluate removing at all
         if (_selectedPiece != null && _selectedPiece != boardPiece && AreNeighbors(_selectedPiece, boardPiece))
         {
             _swapCandidate = boardPiece;
@@ -238,22 +233,21 @@ public class Board
 
     private bool AreNeighbors(BoardPiece piece1, BoardPiece piece2)
     {
-        return Math.Abs(piece1.X - piece2.X) == 1
-            || Math.Abs(piece1.Y - piece2.Y) == 1;
+        var dx = Math.Abs(piece1.X - piece2.X);
+        var dy = Math.Abs(piece1.Y - piece2.Y);
+        return (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
     }
 
-    public bool SwapCandidates()
+    public bool IsReadyToSwap()
     {
-        /*
-        if (_selectedPiece == null || _swapCandidate == null
-            || _selectedPiece.CurrentState != BoardPiece.EState.ReadyForMatch
-            || _swapCandidate.CurrentState != BoardPiece.EState.ReadyForMatch)
-        {
-            return false;
-        }*/
+        return _selectedPiece != null && _swapCandidate != null
+            && _selectedPiece.CurrentState == BoardPiece.EState.ReadyForMatch
+            && _swapCandidate.CurrentState == BoardPiece.EState.ReadyForMatch;
+    }
 
+    public void SwapCandidates()
+    {
         Swap(_selectedPiece, _swapCandidate);
-        return true;
     }
 
     private void Swap(BoardPiece piece1, BoardPiece piece2)
@@ -263,12 +257,11 @@ public class Board
 
         SetPieceAt(piece1, piece2.X, piece2.Y);
         SetPieceAt(piece2, tempX, tempY);
+
+        piece1.EnterSwapState();
+        piece2.EnterSwapState();
     }
 
-    /// <summary>
-    /// Fills the board with random pieces with types from types.
-    /// </summary>
-    /// <param name="types">Types of pieces. Requires at least 3 types to avoid the L case.</param>
     public void RandomFillUp()
     {
         var tempList = new List<int>(_pieceTypes);
@@ -327,8 +320,6 @@ public class Board
 
     public void ConfirmSwappedPieces()
     {
-        UnityEngine.Debug.Log(_selectedPiece);
-        UnityEngine.Debug.Log(_swapCandidate);
         _selectedPiece = _swapCandidate = null;
     }
 
@@ -346,46 +337,6 @@ public class Board
         }
         return sb.ToString();
     }
-
- /*
-    public void ShufflePieces(int seed)
-    {
-        var random = new Random(seed);
-        int maxY = _board.GetLength(1) - 1;
-        int maxX = _board.GetLength(0) - 1;
-
-        for (int y = 0; y < _board.GetLength(1); y++)
-        {
-            for (int x = 0; x < _board.GetLength(0); x++)
-            {
-                int rx = random.Next(0, maxX);
-                int ry = random.Next(0, maxY);
-                Swap(_board[x, y], _board[rx, ry]);
-            }
-        }
-    }
-    
-
-   
-    public void Reshuffle()
-    {
-        do
-        {
-            for (int y = 0; y < _board.GetLength(1); y++)
-            {
-                for (int x = 0; x < _board.GetLength(0); x++)
-                {
-                    Swap(_board[x, y], _board[_random.Next(0, Width), _random.Next(0, Height)]);
-                }
-            }
-        }
-        while (!AreThereAnyPossibleMatchesLeft());
-        ConfirmSwappedPieces();
-        if (Reshuffled != null)
-        {
-            Reshuffled(this, EventArgs.Empty);
-        }
-    }*/
 }
 
 public class MatchResolvedEventArgs

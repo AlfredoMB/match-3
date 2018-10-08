@@ -7,6 +7,7 @@ public class ScoreCounter
     private Board _board;
 
     public int TotalScore { get; private set; }
+    public int TotalMultiplier { get; private set; }
 
     public ScoreCounter(Board board)
     {
@@ -24,7 +25,8 @@ public class ScoreCounter
 
     private void OnMatchResolved(object sender, MatchResolvedEventArgs e)
     {
-        TotalScore += e.Match.Count;
+        TotalMultiplier += e.Match.Count - _board.MinMatchSize;
+        TotalScore += e.Match.Count * TotalMultiplier;
         if (ScoreUpdated != null)
         {
             ScoreUpdated(this, EventArgs.Empty);

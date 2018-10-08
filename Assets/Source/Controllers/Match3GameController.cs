@@ -8,10 +8,13 @@ public class Match3GameController : MonoBehaviour
     public int Height = 8;
     public int MinMatchSize = 3;
 
+    public int StageSeed = 0;
+
     public BoardView BoardView;
     public ScoreView ScoreView;
     public TimerView TimerView;
     public GameOverView GameOverView;
+    public ScoreView GameOverScoreView;
 
     private Board _board;
     private GameTimer _gameTimer;
@@ -19,7 +22,7 @@ public class Match3GameController : MonoBehaviour
 
     private void Awake()
     {
-        _board = new Board(Width, Height, MinMatchSize, new HashSet<int> { 0, 1, 2, 3, 4 }, 0);// UnityEngine.Random.Range(int.MinValue, int.MaxValue));
+        _board = new Board(Width, Height, MinMatchSize, new HashSet<int> { 0, 1, 2, 3, 4 }, StageSeed);
         _board.RandomFillUp();
 
         BoardView.Initialize(_board);
@@ -31,6 +34,7 @@ public class Match3GameController : MonoBehaviour
 
         _score = new ScoreCounter(_board);
         ScoreView.Initialize(_score);
+        GameOverScoreView.Initialize(_score);
 
         enabled = false;
     }

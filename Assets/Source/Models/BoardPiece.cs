@@ -4,7 +4,7 @@ public class BoardPiece
 {
     public event EventHandler Removed;
     public event EventHandler Fell;
-    public event EventHandler Reshuffled;
+    public event EventHandler Swapped;
 
     public readonly int Type;
 
@@ -41,6 +41,10 @@ public class BoardPiece
     public void EnterSwapState()
     {
         CurrentState = EState.UnderSwap;
+        if (Swapped != null)
+        {
+            Swapped(this, EventArgs.Empty);
+        }
     }
 
     public void EnterRemovedState()
@@ -58,14 +62,6 @@ public class BoardPiece
         if (Fell != null)
         {
             Fell(this, EventArgs.Empty);
-        }
-    }
-
-    public void Reshuffle()
-    {
-        if (Reshuffled != null)
-        {
-            Reshuffled(this, EventArgs.Empty);
         }
     }
 
@@ -97,7 +93,6 @@ public class BoardPiece
 
     public override int GetHashCode()
     {
-        // TODO: evaluate this
         unchecked
         {
             int hash = 17;
