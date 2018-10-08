@@ -181,6 +181,7 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
         var matches = _board.GetMatchesForCandidates();
         if (matches != null)
         {
+            _board.ConfirmSwappedPieces();
             _board.ResolveMatches(matches);
         }
         else
