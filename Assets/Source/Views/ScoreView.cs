@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class ScoreView : MonoBehaviour
 {
-    public TextMeshProUGUI Text;
+    public TextMeshProUGUI ScoreText;
+    public TextMeshProUGUI MultiplierText;
 
     private ScoreCounter _score;
 
@@ -14,8 +15,20 @@ public class ScoreView : MonoBehaviour
         _score.ScoreUpdated += OnScoreUpdated;
     }
 
+    private void OnEnable()
+    {
+        OnScoreUpdated(null, null);
+    }
+
     private void OnScoreUpdated(object sender, EventArgs e)
     {
-        Text.text = _score.TotalScore.ToString();
+        if (ScoreText != null)
+        {
+            ScoreText.text = _score.TotalScore.ToString();
+        }
+        if (MultiplierText != null)
+        {
+            MultiplierText.text = _score.TotalMultiplier.ToString();
+        }
     }
 }

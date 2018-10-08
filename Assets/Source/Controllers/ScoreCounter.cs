@@ -7,27 +7,26 @@ public class ScoreCounter
     private Board _board;
 
     public int TotalScore { get; private set; }
+    public int TotalMultiplier { get; private set; }
 
     public ScoreCounter(Board board)
     {
         _board = board;
-        _board.MatchesFound += OnMatchesFound;
+        _board.MatchResolved += OnMatchResolved;
     }
 
     ~ScoreCounter()
     {
         if (_board != null)
         {
-            _board.MatchesFound -= OnMatchesFound;
+            _board.MatchResolved -= OnMatchResolved;
         }
     }
 
-    private void OnMatchesFound(object sender, MatchesFoundEventArgs e)
+    private void OnMatchResolved(object sender, MatchResolvedEventArgs e)
     {
-        foreach(var match in e.Matches)
-        {
-            TotalScore += match.Count;
-        }
+        TotalMultiplier += e.Match.Count - _board.MinMatchSize;
+        TotalScore += e.Match.Count * TotalMultiplier;
         if (ScoreUpdated != null)
         {
             ScoreUpdated(this, EventArgs.Empty);

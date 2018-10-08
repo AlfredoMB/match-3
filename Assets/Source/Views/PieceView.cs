@@ -5,9 +5,7 @@ using UnityEngine.UI;
 
 public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandler, IPointerExitHandler
 {
-    public event EventHandler FallComplete;
-    public event EventHandler SwapComplete;
-    public event EventHandler RemoveComplete;
+    public event EventHandler FellCompleted;
 
     public RectTransform MyRectTransform;
     public Animator MyAnimator;
@@ -20,88 +18,71 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
     public RemoveBehaviour RemoveBehaviour;
 
     private BoardView _boardView;
-    private BoardPiece _boardPiece;
+    private Board _board;
+    
     private bool _isBeingDragged;
 
-    public int X { get; private set; }
-    public int Y { get; private set; }
+    public BoardPiece BoardPiece { get; private set; }
+
     public RectTransform Reference { get; private set; }
 
-    public void Initialize(BoardView boardView, BoardPiece boardPiece, int startingHeight)
+    public void Initialize(BoardView boardView, Board board, BoardPiece boardPiece, int startingHeight)
     {
         _boardView = boardView;
-        _boardPiece = boardPiece;
-        _boardPiece.Removed += OnRemoved;
-        _boardPiece.MovedDown += OnMovedDown;
+        _board = board;
+        BoardPiece = boardPiece;
 
-        SetReference(boardPiece.X, boardPiece.Y);
-        MyRectTransform.position = _boardView.GetReference(boardPiece.X, _boardView.Height + startingHeight, false).position;
+        BoardPiece.Removed += OnRemoved;
+        BoardPiece.Fell += OnFell;
+        BoardPiece.Swapped += OnSwapped;
+
+        MyRectTransform.position = _boardView.GetReference(boardPiece.X, _board.Height + startingHeight, false).position;
 
         MyImage.sprite = PieceImages[boardPiece.Type];
 
-        FallBehaviour.Initialize(this, OnFallComplete);
-        SwapBehaviour.Initialize(this, OnSwapComplete);
-        RemoveBehaviour.Initialize(this, OnRemoveComplete);
+        FallBehaviour.Initialize(this, OnFellCompleted);
+        SwapBehaviour.Initialize(this, OnSwapCompleted);
+        RemoveBehaviour.Initialize(this, OnRemovedCompleted);
 
-        PlayFall();
-    }
-
-    private void OnFallComplete()
-    {
-        if (FallComplete != null)
-        {
-            FallComplete(this, EventArgs.Empty);
-        }
-    }
-
-    private void OnSwapComplete()
-    {
-        if (SwapComplete != null)
-        {
-            SwapComplete(this, EventArgs.Empty);
-        }
-    }
-
-    private void OnRemoveComplete()
-    {
-        if (RemoveComplete != null)
-        {
-            RemoveComplete(this, EventArgs.Empty);
-        }
+        PlayFall();        
     }
 
     private void OnDestroy()
     {
-        if(_boardPiece != null)
+        if(BoardPiece != null)
         {
-            _boardPiece.Removed -= OnRemoved;
-            _boardPiece.MovedDown -= OnMovedDown;
+            BoardPiece.Removed -= OnRemoved;
+            BoardPiece.Fell -= OnFell;
+            BoardPiece.Swapped -= OnSwapped;
         }
     }
 
-    private void OnRemoved(object sender, EventArgs e)
+    private void PlayFall()
     {
-        RemoveBehaviour.Play();
-    }
-
-    private void OnMovedDown(object sender, EventArgs e)
-    {
-        SetReference(_boardPiece.X, _boardPiece.Y);
+        Reference = _boardView.GetReference(BoardPiece.X, BoardPiece.Y);
         FallBehaviour.Play();
-    }
-
-    public void SetReference(int x, int y)
-    {
-        X = x;
-        Y = y;
-        _boardView.SetView(this, x, y);
-        Reference = _boardView.GetReference(x, y);
     }
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        _boardView.Select(this);
+        if(BoardPiece.CurrentState != BoardPiece.EState.ReadyForMatch)
+        {
+            return;
+        }
+
+        _board.SelectPiece(BoardPiece);
         _isBeingDragged = true;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        BoardPiece.EnterReadyForMatchState();
+        if (_board.IsReadyToSwap())
+        {
+            _board.SwapCandidates();
+        }
+
+        _isBeingDragged = false;
     }
 
     public void OnPointerExit(PointerEventData eventData)
@@ -116,42 +97,113 @@ public class PieceView : MonoBehaviour, IPointerDownHandler, IPointerClickHandle
         if (angle > -45 && angle < 45)
         {
             // up
-            _boardView.SwapWithNeighbor(this, 0, 1);
+            SwapWithNeighbor(0, 1);
         }
         else if (angle >= 45 && angle < 135)
         {
             // left
-            _boardView.SwapWithNeighbor(this, -1, 0);
+            SwapWithNeighbor(-1, 0);
         }
         else if (angle <= -45 && angle > -135)
         {
             // right
-            _boardView.SwapWithNeighbor(this, 1, 0);
+            SwapWithNeighbor(1, 0);
         }
         else
         {
             // down
-            _boardView.SwapWithNeighbor(this, 0, -1);
+            SwapWithNeighbor(0, -1);
         }
     }
 
-    public void OnPointerClick(PointerEventData eventData)
+    public void SwapWithNeighbor(int dx, int dy)
     {
-        _isBeingDragged = false;
+        int neighborX = BoardPiece.X + dx;
+        int neighborY = BoardPiece.Y + dy;
+        if (_board.IsOutOfBounds(neighborX, neighborY))
+        {
+            BoardPiece.EnterReadyForMatchState();
+            return;
+        }
+
+        var neighbor = _board.GetPieceAt(neighborX, neighborY);
+        if (neighbor == null || neighbor.CurrentState != BoardPiece.EState.ReadyForMatch)
+        {
+            BoardPiece.EnterReadyForMatchState();
+            return;
+        }
+
+        _board.SelectPiece(neighbor);
+        if (_board.IsReadyToSwap())
+        {
+            _board.SwapCandidates();
+        }
     }
 
-    public void PlayFall()
+    private void OnSwapped(object sender, EventArgs e)
     {
-        FallBehaviour.Play();
-    }
-
-    public void PlaySwap()
-    {
+        Reference = _boardView.GetReference(BoardPiece.X, BoardPiece.Y);
         SwapBehaviour.Play();
     }
 
-    public void PlayRemove()
+    private void OnSwapCompleted()
+    {
+        BoardPiece.EnterReadyForMatchState();
+        if (_board.IsReadyToSwap())
+        {
+            if (!TryToMatchSwap())
+            {                
+                _board.SwapCandidates();
+            }
+            _board.ConfirmSwappedPieces();
+        }
+    }
+
+    private void OnRemoved(object sender, EventArgs e)
     {
         RemoveBehaviour.Play();
+    }
+
+    private void OnRemovedCompleted()
+    {
+        _board.MovePiecesDown();
+    }
+
+    private void OnFell(object sender, EventArgs e)
+    {
+        PlayFall();
+    }
+
+    private void OnFellCompleted()
+    {
+        BoardPiece.EnterReadyForMatchState();
+        if (FellCompleted != null)
+        {
+            FellCompleted(this, EventArgs.Empty);
+        }
+
+        TryToMatch();
+    }
+
+    private bool TryToMatch()
+    {
+        var match = _board.GetMatchFor(BoardPiece);
+        if (match != null)
+        {
+            _board.ResolveMatch(match);
+            return true;
+        }
+        return false;
+    }
+
+    private bool TryToMatchSwap()
+    {
+        var matches = _board.GetMatchesForCandidates();
+        if (matches != null)
+        {
+            _board.ResolveMatches(matches);
+            return true;
+        }
+        return false;
     }
 }

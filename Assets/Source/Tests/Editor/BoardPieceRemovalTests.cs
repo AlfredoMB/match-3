@@ -59,28 +59,4 @@ public class BoardPieceRemovalTests : BoardTests
         Assert.AreNotSame(topPiece, _board.GetPieceAt(0, topPieceY - 2));
         Assert.AreSame(topPiece, _board.GetPieceAt(0, topPieceY - 3));
     }
-
-    [Test]
-    public void RemoveMatchPieces()
-    {
-        int targetX = 0;
-
-        BoardPiece matchPiece = new BoardPiece(0);
-        _board.SetPieceAt(matchPiece, targetX, 0);
-        _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 1, 0);
-        _board.SetPieceAt(new BoardPiece(matchPiece), targetX + 2, 0);
-
-        _board.SetMovedPieceAt(targetX, 0);
-
-        var matches = _board.GetMatchesFromMovedPieces();
-        _board.RemovePiecesFromMatches(matches);
-
-        foreach (var match in matches)
-        {
-            foreach (var piece in match)
-            {
-                Assert.IsTrue(piece.IsRemoved);
-            }
-        }
-    }
 }
