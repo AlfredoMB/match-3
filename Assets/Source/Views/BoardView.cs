@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BoardView : MonoBehaviour
 {
-    public event EventHandler SwapComplete;
-    public event EventHandler RemoveComplete;
-    public event EventHandler MovingPiecesDownComplete;
+    public event EventHandler AllPiecesFell;
 
     public PieceView PieceViewPrefab;
     public Transform PositionReferences;
@@ -14,20 +13,14 @@ public class BoardView : MonoBehaviour
     public Transform PieceContainer;
 
     private Board _board;
-    private PieceView[,] _pieceViews;
-    private int _completed;
-    private int _movedPieces;
-    private int _removedPieces;
-
-    public int Height { get { return _board.Height; } }
+    private List<PieceView> _pieceViews = new List<PieceView>();
+    private int _fallenPieces;
 
     public void Initialize(Board board)
     {
-        _board = board;
-        _board.SwappedBack += OnSwappedBack;
-        _board.MatchesFound += OnMatchesFound;
+        _board = board;;
         _board.PieceSpawned += OnPieceSpawned;
-        _pieceViews = new PieceView[_board.Width, _board.Height];
+        //_board.Reshuffled += OnReshuffled;
         StartCoroutine(SpawnBoard());
     }
 
@@ -35,8 +28,8 @@ public class BoardView : MonoBehaviour
     {
         if (_board != null)
         {
-            _board.MatchesFound -= OnMatchesFound;
             _board.PieceSpawned -= OnPieceSpawned;
+            //_board.Reshuffled -= OnReshuffled;
         }
 
         foreach (var pieceView in _pieceViews)
@@ -45,20 +38,17 @@ public class BoardView : MonoBehaviour
             {
                 continue;
             }
-            pieceView.SwapComplete -= OnSwapComplete;
-            pieceView.RemoveComplete -= OnPieceRemoveComplete;
-            pieceView.FallComplete -= OnPieceMovingDownComplete;
+            pieceView.FellCompleted -= OnFellCompleted;
         }
     }
-
+    
     private IEnumerator SpawnBoard()
     {
         for (int y = 0; y < _board.Height; y++)
         {
             for (int x = 0; x < _board.Width; x++)
             {
-                var boardPiece = _board.GetPieceAt(x, y);
-                SpawnPiece(boardPiece, y);
+                SpawnPiece(_board.GetPieceAt(x, y), y);
                 yield return null;
             }
         }
@@ -66,155 +56,49 @@ public class BoardView : MonoBehaviour
 
     private void SpawnPiece(BoardPiece boardPiece, int startingHeight)
     {
-        var piece = Instantiate(PieceViewPrefab, PieceContainer);
-        piece.name = boardPiece.X + "-" + boardPiece.Y;
+        var pieceView = Instantiate(PieceViewPrefab, PieceContainer);
+        pieceView.name = string.Format("{0}-{1}-{2}", boardPiece.X, boardPiece.Y, boardPiece.Type);
+        
+        _pieceViews.Add(pieceView);
 
-        _pieceViews[boardPiece.X, boardPiece.Y] = piece;
-
-        piece.Initialize(this, boardPiece, startingHeight);
-        piece.SwapComplete += OnSwapComplete;
-        piece.RemoveComplete += OnPieceRemoveComplete;
-        piece.FallComplete += OnPieceMovingDownComplete;
+        pieceView.Initialize(this, _board, boardPiece, startingHeight);
+        pieceView.FellCompleted -= OnFellCompleted;
     }
 
-    private void OnFallComplete(object sender, EventArgs e)
+    private void OnFellCompleted(object sender, EventArgs e)
     {
-        throw new NotImplementedException();
-    }
-
-    public bool IsOutOfBounds(int x, int y)
-    {
-        return x < 0 || x > _board.Width || y < 0 || y > _board.Height;
+        if (++_fallenPieces >= _board.Width * _board.Height && AllPiecesFell != null)
+        {
+            AllPiecesFell(this, EventArgs.Empty);
+        }
     }
 
     public RectTransform GetReference(int x, int y, bool limitedByBounds = true)
     {
-        if (limitedByBounds && IsOutOfBounds(x, y))
+        if (limitedByBounds && _board.IsOutOfBounds(x, y))
         {
             return null;
         }
         return PositionReferences.GetChild(x + y * _board.Width) as RectTransform;
     }
-
-    public void SetView(PieceView pieceView, int x, int y)
-    {
-        _pieceViews[x, y] = pieceView;
-    }
-
-    public void Select(PieceView pieceView)
-    {
-        if (!_board.IsReadyForInput)
-        {
-            return;
-        }
-
-        Debug.Log("Select: " + pieceView + " " + pieceView.Reference + " " + pieceView.X + " " + pieceView.Y);
-        _board.SelectPieceAt(pieceView.X, pieceView.Y);
-    }
-
-    public void SwapWithNeighbor(PieceView pieceView, int dx, int dy)
-    {
-        Debug.Log(_board);
-
-        if (!_board.IsReadyForInput)
-        {
-            return;
-        }
-
-        Debug.Log("SwapWithNeighbor: " + pieceView + " " + pieceView.Reference + " " + pieceView.X + " " + pieceView.Y + ", " + dx + " " + dy);
-
-        int neighborX = pieceView.X + dx;
-        int neighborY = pieceView.Y + dy;
-        if (IsOutOfBounds(neighborX, neighborY))
-        {
-            return;
-        }
-        _board.SelectPieceAt(neighborX, neighborY);
-
-        Debug.LogFormat("{0}, {1}, {2}", pieceView, neighborX, neighborY);
-        Swap(pieceView, neighborX, neighborY);
-    }
-
-    private void Swap(PieceView pieceView, int neighborX, int neighborY)
-    {
-        var neighbor = _pieceViews[neighborX, neighborY];
-
-        _pieceViews[pieceView.X, pieceView.Y] = neighbor;
-        Debug.Log(neighbor);
-        neighbor.SetReference(pieceView.X, pieceView.Y);
-        neighbor.PlaySwap();
-
-        _pieceViews[neighborX, neighborY] = pieceView;
-        pieceView.SetReference(neighborX, neighborY);
-        Debug.Log(pieceView);
-        pieceView.PlaySwap();
-    }
-
-    private void OnSwapComplete(object sender, EventArgs e)
-    {
-        var view = sender as PieceView;
-        Debug.Log("OnSwapComplete: " + view.Reference, view);
-        if (_completed > 0 && SwapComplete != null)
-        {
-            _completed = 0;
-            SwapComplete(this, EventArgs.Empty);
-        }
-        else
-        {
-            _completed = 1;
-        }
-    }
-
-    private void OnSwappedBack(object sender, SwappedEventArgs e)
-    {
-        Swap(_pieceViews[e.SelectedPiece.X, e.SelectedPiece.Y], e.SwapCandidate.X, e.SwapCandidate.Y);
-    }
-
-    private void OnMatchesFound(object sender, MatchesFoundEventArgs e)
-    {
-        //_currentMatchPieces = e.Matches.TotalCount();
-    }
-
+    
     private void OnPieceSpawned(object sender, PieceSpawnedEventArgs e)
     {
         SpawnPiece(e.NewPiece, e.StartingHeight);
     }
-
-    private void OnPieceRemoveComplete(object sender, EventArgs e)
+    
+    public PieceView GetPieceView(BoardPiece boardPiece)
     {
-        var view = sender as PieceView;
-        Destroy(view.gameObject);
-
-        Debug.Log((_removedPieces + 1) + " - " + _board.RemovedPiecesCount);
-
-        if (++_removedPieces < _board.RemovedPiecesCount)
-        {
-            return;
-        }
-
-        _removedPieces = 0;
-
-        if (RemoveComplete != null)
-        {
-            RemoveComplete(this, EventArgs.Empty);
-        }
+        return _pieceViews.Find(pieceView => pieceView.BoardPiece == boardPiece);
     }
 
-    private void OnPieceMovingDownComplete(object sender, EventArgs e)
+    /*
+    private void OnReshuffled(object sender, EventArgs e)
     {
-        Debug.Log((_movedPieces + 1) + " - " + _board.MovedPiecesCount);
-
-        if (++_movedPieces < _board.MovedPiecesCount)
+        foreach(var view in _pieceViews)
         {
-            return;
+            view.Value.SetReference(view.Key);
+            view.Value.PlaySwap();
         }
-
-        _movedPieces = 0;
-
-
-        if (MovingPiecesDownComplete != null)
-        {
-            MovingPiecesDownComplete(this, EventArgs.Empty);
-        }
-    }
+    }*/
 }

@@ -6,13 +6,15 @@ public class Board
 {
     public delegate void SwappedEventHandler(object sender, SwappedEventArgs e);
     public delegate void MatchesFoundEventHandler(object sender, MatchesFoundEventArgs e);
+    public delegate void MatchResolvedEventHandler(object sender, MatchResolvedEventArgs e);
 
     public delegate void PieceSpawnedEventHandler(object sender, PieceSpawnedEventArgs e);
     public event PieceSpawnedEventHandler PieceSpawned;
 
     public event SwappedEventHandler SwappedBack;
     public event MatchesFoundEventHandler MatchesFound;
-
+    public event MatchResolvedEventHandler MatchResolved;
+    public event EventHandler Reshuffled;
 
     private readonly BoardPiece[,] _board;
 
@@ -27,7 +29,7 @@ public class Board
     public readonly int Width;
     public readonly int Height;
     public readonly int MinMatchSize;
-    private readonly int[] _pieceTypes;
+    private readonly List<int> _pieceTypes;
     private readonly Random _random;
 
     public bool IsReadyToSwap { get { return (_selectedPiece != null && _swapCandidate != null); } }
@@ -40,28 +42,31 @@ public class Board
     public int MovedPiecesCount { get { return _movedList.Count; } }
     public int RemovedPiecesCount { get { return _removedList.Count; } }
 
-    public Board(int width, int height, int minMatchSize, int[] pieceTypes, int randomSeed)
+    public void ResolveMatch(Match match)
     {
-        if (pieceTypes.Length < 3)
+        foreach (var piece in match)
         {
-            throw new ArgumentOutOfRangeException("pieceTypes", "Board requires at least 3 types of pieces to avoid the L case.");
+            RemovePieceAt(piece.X, piece.Y);
         }
 
-        // check unique
-        var uniqueCheckSet = new HashSet<int>();
-        foreach (var type in pieceTypes)
+        if (MatchResolved != null)
         {
-            if (!uniqueCheckSet.Add(type))
-            {
-                throw new ArgumentException("All types should be unique.", "pieceTypes");
-            }
+            MatchResolved(this, new MatchResolvedEventArgs(match));
+        }
+    }
+
+    public Board(int width, int height, int minMatchSize, HashSet<int> pieceTypes, int randomSeed)
+    {
+        if (pieceTypes.Count < 3)
+        {
+            throw new ArgumentOutOfRangeException("pieceTypes", "Board requires at least 3 types of pieces to avoid the L case.");
         }
 
         Width = width;
         Height = height;
         _board = new BoardPiece[width, height];
         MinMatchSize = minMatchSize;
-        _pieceTypes = pieceTypes;
+        _pieceTypes = new List<int>(pieceTypes);
         _random = new Random(randomSeed);
     }
 
@@ -115,7 +120,7 @@ public class Board
             int startingSpaceHeight = emptySpaces;
             while(emptySpaces > 0)
             {
-                var newPiece = GetNewBoardPiece(_random.Next(0, _pieceTypes.Length - 1));
+                var newPiece = GetNewBoardPiece(_random.Next(0, _pieceTypes.Count));
                 SetPieceAt(newPiece, x, Height - emptySpaces--);
                 SetMovedPiece(newPiece);
 
@@ -128,11 +133,35 @@ public class Board
         _removedList.Clear();
     }
 
+    public void ResolveMatches(Matches matches)
+    {
+        foreach (var match in matches)
+        {
+            ResolveMatch(match);
+        }
+    }
+
+    public Matches GetMatchesForCandidates()
+    {
+        var matches = new Matches();
+        var match1 = GetMatchFor(_selectedPiece);
+        if (match1 != null)
+        {
+            matches.Add(match1);
+        }
+        var match2 = GetMatchFor(_swapCandidate);
+        if (match2 != null)
+        {
+            matches.Add(match2);
+        }
+        return matches.Count > 0 ? matches : null;
+    }
+
     private void MovePieceTo(BoardPiece boardPiece, int x, int y)
     {
         SetPieceAt(boardPiece, x, y);
         SetMovedPieceAt(x, y);
-        boardPiece.MoveDown();
+        boardPiece.Fall();
     }
 
     public void SetMovedPieceAt(int x, int y)
@@ -158,62 +187,7 @@ public class Board
         _matches.Clear();
         foreach (var movedPiece in _movedList)
         {
-            var horizontalMatch = new Match(movedPiece.Type) { movedPiece };
-            var verticalMatch = new Match(movedPiece.Type) { movedPiece };
-
-            // check left
-            for (int i = movedPiece.X - 1; i >= 0; i--)
-            {
-                if (!_board[i, movedPiece.Y].Matches(movedPiece))
-                {
-                    break;
-                }
-                horizontalMatch.Add(_board[i, movedPiece.Y]);
-            }
-
-            // check right
-            for (int i = movedPiece.X + 1; i < _board.GetLength(0); i++)
-            {
-                if (!_board[i, movedPiece.Y].Matches(movedPiece))
-                {
-                    break;
-                }
-                horizontalMatch.Add(_board[i, movedPiece.Y]);
-            }
-
-            // check up
-            for (int j = movedPiece.Y + 1; j < _board.GetLength(1); j++)
-            {
-                if (!_board[movedPiece.X, j].Matches(movedPiece))
-                {
-                    break;
-                }
-                verticalMatch.Add(_board[movedPiece.X, j]);
-            }
-
-            // check down
-            for (int j = movedPiece.Y - 1; j >= 0; j--)
-            {
-                if (!_board[movedPiece.X, j].Matches(movedPiece))
-                {
-                    break;
-                }
-                verticalMatch.Add(_board[movedPiece.X, j]);
-            }
-            
-            if (horizontalMatch.Count >= MinMatchSize && verticalMatch.Count >= MinMatchSize)
-            {
-                horizontalMatch.UnionWith(verticalMatch);
-                _matches.Add(horizontalMatch);
-            }
-            else if (horizontalMatch.Count >= MinMatchSize)
-            {
-                _matches.Add(horizontalMatch);
-            }
-            else if (verticalMatch.Count >= MinMatchSize)
-            {
-                _matches.Add(verticalMatch);
-            }
+            GetMatchFor(movedPiece);            
         }
 
         if (_matches.Count > 0 && MatchesFound != null)
@@ -224,14 +198,77 @@ public class Board
         return _matches;
     }
 
-    public void SelectPieceAt(int x, int y)
+    public Match GetMatchFor(BoardPiece movedPiece)
     {
-        SelectPiece(_board[x, y]);
+        var horizontalMatch = new Match(movedPiece.Type) { movedPiece };
+        var verticalMatch = new Match(movedPiece.Type) { movedPiece };
+
+        // check left
+        for (int i = movedPiece.X - 1; i >= 0; i--)
+        {
+            if (_board[i, movedPiece.Y] == null || !_board[i, movedPiece.Y].Matches(movedPiece))
+            {
+                break;
+            }
+            horizontalMatch.Add(_board[i, movedPiece.Y]);
+        }
+
+        // check right
+        for (int i = movedPiece.X + 1; i < _board.GetLength(0); i++)
+        {
+            if (_board[i, movedPiece.Y] == null || !_board[i, movedPiece.Y].Matches(movedPiece))
+            {
+                break;
+            }
+            horizontalMatch.Add(_board[i, movedPiece.Y]);
+        }
+
+        // check up
+        for (int j = movedPiece.Y + 1; j < _board.GetLength(1); j++)
+        {
+            if (_board[movedPiece.X, j] == null || !_board[movedPiece.X, j].Matches(movedPiece))
+            {
+                break;
+            }
+            verticalMatch.Add(_board[movedPiece.X, j]);
+        }
+
+        // check down
+        for (int j = movedPiece.Y - 1; j >= 0; j--)
+        {
+            if (_board[movedPiece.X, j] == null || !_board[movedPiece.X, j].Matches(movedPiece))
+            {
+                break;
+            }
+            verticalMatch.Add(_board[movedPiece.X, j]);
+        }
+
+        if (horizontalMatch.Count >= MinMatchSize && verticalMatch.Count >= MinMatchSize)
+        {
+            horizontalMatch.UnionWith(verticalMatch);
+            return horizontalMatch;
+        }
+        else if (horizontalMatch.Count >= MinMatchSize)
+        {
+            return horizontalMatch;
+        }
+        else if (verticalMatch.Count >= MinMatchSize)
+        {
+            return verticalMatch;
+        }
+
+        return null;
+    }
+
+    public bool IsOutOfBounds(int x, int y)
+    {
+        return x < 0 || x > Width || y < 0 || y > Height;
     }
 
     public void SelectPiece(BoardPiece boardPiece)
     {
         // TODO: add test for 2nd comparision
+        // TODO: evaluate removing at all
         if (_selectedPiece != null && _selectedPiece != boardPiece && AreNeighbors(_selectedPiece, boardPiece))
         {
             _swapCandidate = boardPiece;
@@ -331,7 +368,7 @@ public class Board
                     }
                 }
 
-                int randomValue = _random.Next(0, tempList.Count - 1);
+                int randomValue = _random.Next(0, tempList.Count);
                 var randomPiece = tempList[randomValue];
                 SetPieceAt(new BoardPiece(randomPiece), x, y);
                 //SetMovedPieceAt(x, y);
@@ -409,6 +446,26 @@ public class Board
         return false;
     }
 
+    public void Reshuffle()
+    {
+        do
+        {
+            for (int y = 0; y < _board.GetLength(1); y++)
+            {
+                for (int x = 0; x < _board.GetLength(0); x++)
+                {
+                    Swap(_board[x, y], _board[_random.Next(0, Width), _random.Next(0, Height)]);
+                }
+            }
+        }
+        while (!AreThereAnyPossibleMatchesLeft());
+        ConfirmSwappedPieces();
+        if (Reshuffled != null)
+        {
+            Reshuffled(this, EventArgs.Empty);
+        }
+    }
+
     public PossibleMatches GetAllPossibleMatchesLeft()
     {
         _possibleMatches.Clear();
@@ -474,6 +531,16 @@ public class Board
         ConfirmMovedPieces();
         IsSwapping = false;
         _selectedPiece = _swapCandidate = null;
+    }
+}
+
+public class MatchResolvedEventArgs
+{
+    public readonly Match Match;
+
+    public MatchResolvedEventArgs(Match match)
+    {
+        Match = match;
     }
 }
 

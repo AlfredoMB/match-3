@@ -10,6 +10,8 @@
         SwappingBack,
         RemovingMatchPieces,
         MovingDownPieces,
+        CheckForPossibleMatches,
+        Reshuffle,
     }
 
     private EState _currentState;
@@ -18,7 +20,7 @@
     public Match3Game(Board board)
     {
         _board = board;
-        _currentState = EState.WaitingToSwap;
+        _currentState = EState.CheckForPossibleMatches;
     }
 
     public void Process()
@@ -26,6 +28,22 @@
         UnityEngine.Debug.Log(_currentState);
         switch (_currentState)
         {
+            case EState.CheckForPossibleMatches:
+                if (_board.AreThereAnyPossibleMatchesLeft())
+                {
+                    _currentState = EState.WaitingToSwap;
+                }
+                else
+                {
+                    _currentState = EState.Reshuffle;
+                }
+                break;
+
+            case EState.Reshuffle:
+                _board.Reshuffle();
+                _currentState = EState.WaitingToSwap;
+                break;
+
             case EState.WaitingToSwap:
                 UnityEngine.Debug.Log("----------------------------------------------------------------");
                 if (!_board.IsReadyToSwap)
@@ -48,7 +66,7 @@
                     else
                     {
                         _board.ConfirmMovedPieces();
-                        _currentState = EState.WaitingToSwap;
+                        _currentState = EState.CheckForPossibleMatches;
                     }
                 }
                 else

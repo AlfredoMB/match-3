@@ -11,23 +11,20 @@ public class ScoreCounter
     public ScoreCounter(Board board)
     {
         _board = board;
-        _board.MatchesFound += OnMatchesFound;
+        _board.MatchResolved += OnMatchResolved;
     }
 
     ~ScoreCounter()
     {
         if (_board != null)
         {
-            _board.MatchesFound -= OnMatchesFound;
+            _board.MatchResolved -= OnMatchResolved;
         }
     }
 
-    private void OnMatchesFound(object sender, MatchesFoundEventArgs e)
+    private void OnMatchResolved(object sender, MatchResolvedEventArgs e)
     {
-        foreach(var match in e.Matches)
-        {
-            TotalScore += match.Count;
-        }
+        TotalScore += e.Match.Count;
         if (ScoreUpdated != null)
         {
             ScoreUpdated(this, EventArgs.Empty);
